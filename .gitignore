@@ -1,0 +1,8 @@
+node_modules
+.DS_Store
+*.local
+.env
+extension.js
+extension.css
+extension.js.map
+build/
