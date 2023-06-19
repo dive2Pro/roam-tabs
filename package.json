@@ -1,5 +1,5 @@
 {
-  "name": "roam-plugin-template",
+  "name": "roam-plugin-tabs",
   "version": "0.0.0",
   "main": "extension.js",
   "scripts": {
@@ -8,9 +8,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "roamjs-components": "^0.72.9"
   },
   "devDependencies": {
+    "roamjs-components": "*",
     "vite-plugin-externals": "^0.6.2",
     "@blueprintjs/core": "3.54.0",
     "@blueprintjs/select": "3.19.1",
