@@ -82,9 +82,10 @@ const setTabs = (newTab: Tab) => {
   mount();
 };
 const removeTab = (uid: string) => {
+  const index = tabs.findIndex((tab) => tab.uid === uid);
   tabs = tabs.filter((tab) => tab.uid !== uid);
   if (currentTab.uid === uid) {
-    setCurrentTab(tabs[0])
+    setCurrentTab(tabs[Math.max(0, index - 1 )]);
   }
   mount();
 };
