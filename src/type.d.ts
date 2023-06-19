@@ -8,3 +8,6 @@ type RoamExtensionAPI = {
     set: (k: string, v: unknown) => Promise<void>;
   };
 };
+
+
+type Tab = { uid: string, title: string, blockUid: string };

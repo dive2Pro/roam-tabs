@@ -4,28 +4,29 @@ import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
 import { Button, Icon } from '@blueprintjs/core'
 import { extension_helper } from "./helper";
-import { isAutoOpenNewTab } from "./config";
+import { isAutoOpenNewTab, loadTabsFromSettings, saveTabsToSettings } from "./config";
 
 const clazz = "roam-tabs";
 
-const mount = () => {
+const delay = (ms = 10) => new Promise((resolve) => setTimeout(() => { resolve(1) }, ms));
+
+const mount = async () => {
   const roamMain = document.querySelector(".roam-main");
   let el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
   const articleWrapper = document.querySelector(".rm-article-wrapper");
-  console.log(el, " --@@-- ");
   if (!el) {
     el = document.createElement("div");
     el.className = clazz;
-    roamBodyMain.insertBefore(el, roamBodyMain.firstChild);
+    roamMain.insertBefore(el, roamBodyMain);
   }
-
   ReactDOM.render(<App />, el);
+  saveTabsToSettings(tabs, currentTab);
 
   // scroll to active button
   setTimeout(() => {
     const activeEl = el.querySelector(".roam-tab-active");
-    if (!activeEl) {
+    if (!activeEl || !activeEl.parentElement) {
       return
     }
     const childRect = activeEl.getBoundingClientRect();
@@ -40,11 +41,10 @@ const mount = () => {
         left: itemLeft
       })
     }
-   
+
   }, 100)
 };
 
-type Tab = { uid: string, title: string, blockUid: string };
 let currentTab: string;
 
 let tabs: Tab[] = [];
@@ -84,13 +84,13 @@ const removeTab = (uid: string) => {
   tabs = tabs.filter((tab) => tab.uid !== uid);
   if (currentTab === uid) {
     setCurrentTab(tabs[0]?.uid)
-    tabs[0]?.uid && openUid(tabs[0].uid);
   }
   mount();
 };
 
 const setCurrentTab = (v?: string) => {
   currentTab = v;
+  v && openUid(v);
   mount();
 };
 
@@ -147,9 +147,8 @@ function App() {
             intent={active ? "primary" : "none"}
             outlined
             small
-            className={`${active ? "roam-tab-active" : '' } roam-tab`}
+            className={`${active ? "roam-tab-active" : ''} roam-tab`}
             onClick={() => {
-              openUid(tab.blockUid);
               setCurrentTab(tab.uid);
             }}
             rightIcon={
@@ -236,7 +235,11 @@ function getPageTitleByUid(uid: string) {
 }
 
 export function initExtension() {
-  console.log("init extension");
+  const cacheConfig = loadTabsFromSettings();
+  if (cacheConfig) {
+    setCurrentTab(cacheConfig.activeTab);
+    tabs = cacheConfig.tabs;
+  }
   mount();
   extension_helper.on_uninstall(() => {
     document.querySelector(`.${clazz}`)?.remove()

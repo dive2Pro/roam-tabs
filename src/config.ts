@@ -1,6 +1,7 @@
 
 const Keys = {
-    Auto: 'Auto'
+    Auto: 'Auto',
+    Tabs: 'Tabs',
 }
 
 let API: RoamExtensionAPI;
@@ -14,10 +15,10 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
             description: 'Automatically open links in new tabs',
             action: {
                 type: "switch",
-                onChange: (evt: {  target: { checked: boolean}}) => { 
+                onChange: (evt: { target: { checked: boolean } }) => {
                     console.log(evt, ' ----@@@')
                     API.settings.set(Keys.Auto, evt.target.checked);
-                 }
+                }
             }
         }]
     })
@@ -25,4 +26,17 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
 
 export function isAutoOpenNewTab() {
     return API.settings.get(Keys.Auto) === true;
+}
+
+type CacheTab = { tabs: Tab[], activeTab: string };
+
+export function loadTabsFromSettings(): CacheTab {
+    return (API.settings.get(Keys.Tabs) as CacheTab)
+}
+
+export function saveTabsToSettings(tabs: Tab[], activeTab: string) {
+    API.settings.set(Keys.Tabs, {
+        tabs,
+        activeTab
+    })
 }
