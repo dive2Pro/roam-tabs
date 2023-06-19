@@ -80,7 +80,8 @@ function App() {
     setCurrentTab(uid);
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
-    ctrlKeyPressed = e.ctrlKey;
+
+    ctrlKeyPressed = e.ctrlKey || e.metaKey;
   });
 
   useEffect(() => {
