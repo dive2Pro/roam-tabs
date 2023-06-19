@@ -4,6 +4,7 @@ import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
 import { Button, Icon } from '@blueprintjs/core'
 import { extension_helper } from "./helper";
+import { isAutoOpenNewTab } from "./config";
 
 const clazz = "roam-tabs";
 
@@ -20,6 +21,27 @@ const mount = () => {
   }
 
   ReactDOM.render(<App />, el);
+
+  // scroll to active button
+  setTimeout(() => {
+    const activeEl = el.querySelector(".roam-tab-active");
+    if (!activeEl) {
+      return
+    }
+    const childRect = activeEl.getBoundingClientRect();
+    const parentRect = activeEl.parentElement.getBoundingClientRect();
+    const itemLeft = childRect.left - parentRect.left;
+    const itemRight = itemLeft + childRect.width;
+    const containerLeft = activeEl.parentElement.scrollLeft;
+    const containerRight = containerLeft + childRect.width;
+
+    if (itemLeft < containerLeft || itemRight > containerRight) {
+      activeEl.parentElement.scroll({
+        left: itemLeft
+      })
+    }
+   
+  }, 100)
 };
 
 type Tab = { uid: string, title: string, blockUid: string };
@@ -29,7 +51,7 @@ let tabs: Tab[] = [];
 const setTabs = (newTab: Tab) => {
   const change = (prev: Tab[]) => {
     const index = prev.findIndex((tab) => tab.uid === newTab.uid);
-    if (ctrlKeyPressed) {
+    if (ctrlKeyPressed || isAutoOpenNewTab()) {
       if (index === -1) {
         return [...prev, newTab];
       } else {
@@ -46,7 +68,7 @@ const setTabs = (newTab: Tab) => {
     }
     if (!currentTab) {
       prev[0] = newTab;
-      currentTab = newTab.uid;
+      setCurrentTab(newTab.uid)
       return [...prev];
     }
     const i = prev.findIndex((tab) => currentTab === tab.uid);
@@ -61,7 +83,7 @@ const setTabs = (newTab: Tab) => {
 const removeTab = (uid: string) => {
   tabs = tabs.filter((tab) => tab.uid !== uid);
   if (currentTab === uid) {
-    currentTab = tabs[0]?.uid;
+    setCurrentTab(tabs[0]?.uid)
     tabs[0]?.uid && openUid(tabs[0].uid);
   }
   mount();
@@ -125,6 +147,7 @@ function App() {
             intent={active ? "primary" : "none"}
             outlined
             small
+            className={`${active ? "roam-tab-active" : '' } roam-tab`}
             onClick={() => {
               openUid(tab.blockUid);
               setCurrentTab(tab.uid);
