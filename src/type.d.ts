@@ -10,4 +10,4 @@ type RoamExtensionAPI = {
 };
 
 
-type Tab = { uid: string, title: string, blockUid: string };
+type Tab = { uid: string, title: string, blockUid: string, scrollTop?: number };

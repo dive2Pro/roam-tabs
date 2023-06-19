@@ -7,6 +7,7 @@ import { extension_helper } from "./helper";
 import { isAutoOpenNewTab, loadTabsFromSettings, saveTabsToSettings } from "./config";
 
 const clazz = "roam-tabs";
+let scrollTop$ = 0;
 
 const delay = (ms = 10) => new Promise((resolve) => setTimeout(() => { resolve(1) }, ms));
 
@@ -26,6 +27,11 @@ const mount = async () => {
 
   // scroll to active button
   setTimeout(() => {
+    console.log(currentTab, ' -----')
+    if (currentTab.scrollTop) {
+      const rbm = document.querySelector(".rm-article-wrapper");
+      rbm.scrollTop = currentTab.scrollTop
+    }
     const activeEl = el.querySelector(".roam-tab-active");
     if (!activeEl || !activeEl.parentElement) {
       return
@@ -85,7 +91,7 @@ const removeTab = (uid: string) => {
   const index = tabs.findIndex((tab) => tab.uid === uid);
   tabs = tabs.filter((tab) => tab.uid !== uid);
   if (currentTab.uid === uid) {
-    setCurrentTab(tabs[Math.max(0, index - 1 )]);
+    setCurrentTab(tabs[Math.max(0, index - 1)]);
   }
   mount();
 };
@@ -98,16 +104,40 @@ const setCurrentTab = (v?: Tab) => {
 
 function App() {
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
+    if (currentTab) {
+      currentTab.scrollTop = scrollTop$;
+    }
+    console.log(tabs, ' = tabs', currentTab, scrollTop$)
+    scrollTop$ = 0;
     if (uid) setTabs({
-      uid, title, blockUid
+      uid,
+      title,
+      blockUid
     });
     setCurrentTab({ uid, title, blockUid });
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
 
     ctrlKeyPressed = e.ctrlKey || e.metaKey;
+    const rbm = document.querySelector(".rm-article-wrapper")
+    scrollTop$ = rbm.scrollTop
+    console.log(scrollTop$, ' ---global')
   });
+  useEffect(() => {
+    const rbm = document.querySelector(".rm-article-wrapper")
+    if (!rbm) {
+      return
+    }
 
+    function onScroll(e: Event) {
+     
+    }
+    rbm.addEventListener("scroll", onScroll)
+    return () => {
+      rbm.removeEventListener("scroll", onScroll)
+    }
+
+  }, [])
   useEffect(() => {
     const old = window.onhashchange;
     window.onhashchange = async function (e) {
