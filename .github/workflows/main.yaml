@@ -27,7 +27,7 @@ jobs:
         with:
           repository: ${{ env.FORK }}/roam-depot
           ref: main
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Sync fork
         run: |
           git fetch --prune --unshallow
@@ -65,7 +65,7 @@ jobs:
       - name: Create pull request
         uses: actions/github-script@v4
         with:
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const branch = "${{ env.BRANCH }}"; // Replace with the branch you want to create a PR for
             const owner = 'Roam-Research';
