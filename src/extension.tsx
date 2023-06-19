@@ -153,7 +153,11 @@ function App() {
             outlined
             small
             className={`${active ? "roam-tab-active" : ''} roam-tab`}
-            onClick={() => {
+            onClick={(e) => {
+              if (e.shiftKey) {
+                openInSidebar(tab.uid);
+                return;
+              }
               setCurrentTab(tab);
             }}
             rightIcon={
@@ -248,5 +252,15 @@ export function initExtension() {
   mount();
   extension_helper.on_uninstall(() => {
     document.querySelector(`.${clazz}`)?.remove()
+  })
+}
+
+
+function openInSidebar(uid: string) {
+  window.roamAlphaAPI.ui.rightSidebar.addWindow({
+    window: {
+      'block-uid': uid,
+      type: 'outline'
+    }
   })
 }
