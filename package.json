@@ -10,7 +10,7 @@
   "dependencies": {
   },
   "devDependencies": {
-    "roamjs-components": "*",
+    "roamjs-components": "^0.80.1",
     "vite-plugin-externals": "^0.6.2",
     "@blueprintjs/core": "3.54.0",
     "@blueprintjs/select": "3.19.1",
