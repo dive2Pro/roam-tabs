@@ -28,13 +28,13 @@ export function isAutoOpenNewTab() {
     return API.settings.get(Keys.Auto) === true;
 }
 
-type CacheTab = { tabs: Tab[], activeTab: string };
+type CacheTab = { tabs: Tab[], activeTab: Tab };
 
 export function loadTabsFromSettings(): CacheTab {
     return (API.settings.get(Keys.Tabs) as CacheTab)
 }
 
-export function saveTabsToSettings(tabs: Tab[], activeTab: string) {
+export function saveTabsToSettings(tabs: Tab[], activeTab: Tab) {
     API.settings.set(Keys.Tabs, {
         tabs,
         activeTab

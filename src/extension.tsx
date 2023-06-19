@@ -11,6 +11,7 @@ const clazz = "roam-tabs";
 const delay = (ms = 10) => new Promise((resolve) => setTimeout(() => { resolve(1) }, ms));
 
 const mount = async () => {
+  await delay(250)
   const roamMain = document.querySelector(".roam-main");
   let el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
@@ -45,7 +46,7 @@ const mount = async () => {
   }, 100)
 };
 
-let currentTab: string;
+let currentTab: Tab | undefined;
 
 let tabs: Tab[] = [];
 const setTabs = (newTab: Tab) => {
@@ -68,10 +69,10 @@ const setTabs = (newTab: Tab) => {
     }
     if (!currentTab) {
       prev[0] = newTab;
-      setCurrentTab(newTab.uid)
+      setCurrentTab(newTab)
       return [...prev];
     }
-    const i = prev.findIndex((tab) => currentTab === tab.uid);
+    const i = prev.findIndex((tab) => currentTab.uid === tab.uid);
     prev[i] = newTab;
     console.log(currentTab, i, prev);
 
@@ -82,15 +83,15 @@ const setTabs = (newTab: Tab) => {
 };
 const removeTab = (uid: string) => {
   tabs = tabs.filter((tab) => tab.uid !== uid);
-  if (currentTab === uid) {
-    setCurrentTab(tabs[0]?.uid)
+  if (currentTab.uid === uid) {
+    setCurrentTab(tabs[0])
   }
   mount();
 };
 
-const setCurrentTab = (v?: string) => {
+const setCurrentTab = (v?: Tab) => {
   currentTab = v;
-  v && openUid(v);
+  v && openUid(v.blockUid);
   mount();
 };
 
@@ -99,7 +100,7 @@ function App() {
     if (uid) setTabs({
       uid, title, blockUid
     });
-    setCurrentTab(uid);
+    setCurrentTab({ uid, title, blockUid });
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
 
@@ -124,6 +125,7 @@ function App() {
       console.log("change: ", pageUid, title, uid);
 
       onChange(pageUid, title, uid);
+
     };
     return () => {
       window.onhashchange = old;
@@ -140,16 +142,18 @@ function App() {
   return (
     <div style={{ overflowX: "auto", whiteSpace: "nowrap", padding: 5 }}>
       {tabs.map((tab) => {
-        const active = tab.uid === currentTab;
+        const active = tab.uid === currentTab?.uid;
         return (
           <Button
-            style={{}}
+            style={{
+              outline: 'none'
+            }}
             intent={active ? "primary" : "none"}
             outlined
             small
             className={`${active ? "roam-tab-active" : ''} roam-tab`}
             onClick={() => {
-              setCurrentTab(tab.uid);
+              setCurrentTab(tab);
             }}
             rightIcon={
               <Button
