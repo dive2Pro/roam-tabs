@@ -84,6 +84,7 @@ const setTabs = (newTab: Tab) => {
 
     return [...prev];
   };
+  console.log("---change: ", JSON.stringify(tabs))
   tabs = change(tabs);
   mount();
 };
@@ -97,46 +98,61 @@ const removeTab = (uid: string) => {
 };
 
 const setCurrentTab = (v?: Tab) => {
-  currentTab = v;
+  if (v) {
+    const oldTab = tabs.find((tab) => tab.uid === v.uid);
+    currentTab = {
+      ...oldTab,
+      ...v
+    }
+  } else {
+    currentTab = v;
+  }
+  console.log(tabs, currentTab, ' setCurrentTab')
   v && openUid(v.blockUid);
   mount();
 };
 
 function App() {
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
-    if (currentTab) {
-      currentTab.scrollTop = scrollTop$;
-    }
-    console.log(tabs, ' = tabs', currentTab, scrollTop$)
-    scrollTop$ = 0;
-    if (uid) setTabs({
-      uid,
-      title,
-      blockUid
-    });
+    if (uid) {
+      const oldTab = tabs.find((tab) => tab.uid === uid);
+
+      const newTab = {
+        ...oldTab,
+        uid,
+        title,
+        blockUid
+      };
+      setTabs(newTab)
+    };
     setCurrentTab({ uid, title, blockUid });
+    console.log(tabs, ' 123= tabs', currentTab)
+
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
 
     ctrlKeyPressed = e.ctrlKey || e.metaKey;
     const rbm = document.querySelector(".rm-article-wrapper")
-    scrollTop$ = rbm.scrollTop
-    console.log(scrollTop$, ' ---global')
+    // console.log(scrollTop$, ' ---global')
   });
+
+  const onScroll = useEvent((e: Event) => {
+    const rbm = document.querySelector(".rm-article-wrapper")
+
+    scrollTop$ = rbm.scrollTop
+    recordPosition()
+  })
+  
   useEffect(() => {
     const rbm = document.querySelector(".rm-article-wrapper")
     if (!rbm) {
       return
     }
 
-    function onScroll(e: Event) {
-     
-    }
     rbm.addEventListener("scroll", onScroll)
     return () => {
       rbm.removeEventListener("scroll", onScroll)
     }
-
   }, [])
   useEffect(() => {
     const old = window.onhashchange;
@@ -153,8 +169,7 @@ function App() {
       }
       const pageUid = getPageUidByUid(uid);
       const title = getPageTitleByUid(pageUid);
-      console.log("change: ", pageUid, title, uid);
-
+      console.log("change: ", pageUid, title, uid, tabs);
       onChange(pageUid, title, uid);
 
     };
@@ -293,4 +308,15 @@ function openInSidebar(uid: string) {
       type: 'outline'
     }
   })
+}
+function recordPosition() {
+  // console.log(currentTab, 'before record', tabs)
+
+  if (currentTab) {
+    currentTab.scrollTop = scrollTop$
+    tabs.find((tab) => tab.uid === currentTab.uid).scrollTop = scrollTop$
+  }
+  scrollTop$ = 0;
+
+  // console.log(currentTab, 'after record', tabs)
 }
