@@ -32,22 +32,31 @@ const mount = async () => {
       const rbm = document.querySelector(".rm-article-wrapper");
       rbm.scrollTop = currentTab.scrollTop
     }
-    const activeEl = el.querySelector(".roam-tab-active");
-    if (!activeEl || !activeEl.parentElement) {
-      return
-    }
-    const childRect = activeEl.getBoundingClientRect();
-    const parentRect = activeEl.parentElement.getBoundingClientRect();
-    const itemLeft = childRect.left - parentRect.left;
-    const itemRight = itemLeft + childRect.width;
-    const containerLeft = activeEl.parentElement.scrollLeft;
-    const containerRight = containerLeft + childRect.width;
 
-    if (itemLeft < containerLeft || itemRight > containerRight) {
-      activeEl.parentElement.scroll({
-        left: itemLeft
-      })
+    function scrollIntoActiveTab() {
+      const activeEl = el.querySelector(".roam-tab-active");
+      if (!activeEl || !activeEl.parentElement) {
+        return
+      }
+
+      const childRect = activeEl.getBoundingClientRect();
+      const parentRect = activeEl.parentElement.getBoundingClientRect();
+      const itemLeft = childRect.left - parentRect.left;
+      const itemRight = itemLeft + childRect.width;
+      const containerLeft = activeEl.parentElement.scrollLeft;
+      const containerRight = containerLeft + childRect.width;
+
+      if (itemLeft < containerLeft || itemRight > containerRight) {
+        // activeEl.parentElement.scroll({
+        //   left: itemLeft
+        // })
+        activeEl.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
     }
+    scrollIntoActiveTab();
 
   }, 100)
 };
@@ -142,7 +151,7 @@ function App() {
     scrollTop$ = rbm.scrollTop
     recordPosition()
   })
-  
+
   useEffect(() => {
     const rbm = document.querySelector(".rm-article-wrapper")
     if (!rbm) {
@@ -155,12 +164,10 @@ function App() {
     }
   }, [])
   useEffect(() => {
-    const old = window.onhashchange;
-    window.onhashchange = async function (e) {
+    const onRouteChange = async (e: HashChangeEvent) => {
       await new Promise((resolve) => {
         setTimeout(resolve, 100);
       });
-      old.call(window, e)
       console.log("change---", e);
       const index = location.href.indexOf("/page/");
       const uid = e.newURL.split("/").pop();
@@ -173,9 +180,11 @@ function App() {
       console.log("change: ", pageUid, title, uid, tabs);
       onChange(pageUid, title, uid);
 
-    };
+    }
+    window.addEventListener("hashchange", onRouteChange)
+
     return () => {
-      window.onhashchange = old;
+      window.removeEventListener("hashchange", onRouteChange)
     };
   }, []);
   useEffect(() => {
