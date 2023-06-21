@@ -160,6 +160,7 @@ function App() {
       await new Promise((resolve) => {
         setTimeout(resolve, 100);
       });
+      old.call(window, e)
       console.log("change---", e);
       const index = location.href.indexOf("/page/");
       const uid = e.newURL.split("/").pop();
@@ -186,7 +187,7 @@ function App() {
   }, []);
   console.log(tabs);
   return (
-    <div style={{ overflowX: "auto", whiteSpace: "nowrap", padding: 5 }}>
+    <div className="roam-tabs-container">
       {tabs.map((tab) => {
         const active = tab.uid === currentTab?.uid;
         return (
@@ -288,7 +289,7 @@ function getPageTitleByUid(uid: string) {
 `);
 }
 
-export function initExtension() {
+export function initExtension(extensionAPI: RoamExtensionAPI) {
   const cacheConfig = loadTabsFromSettings();
   if (cacheConfig) {
     setCurrentTab(cacheConfig.activeTab);

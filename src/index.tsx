@@ -4,7 +4,7 @@ import { initConfig } from "./config";
 
 function onload({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) {
   initConfig(extensionAPI);
-  initExtension();
+  initExtension(extensionAPI);
 }
 
 function onunload() {
