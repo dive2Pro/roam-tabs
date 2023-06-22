@@ -2,9 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
-import { Button, Icon } from '@blueprintjs/core'
+import { Button, Icon, MenuItem, Menu } from '@blueprintjs/core'
 import { extension_helper } from "./helper";
 import { isAutoOpenNewTab, loadTabsFromSettings, saveTabsToSettings } from "./config";
+import { Omnibar } from "@blueprintjs/select";
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
@@ -27,8 +28,7 @@ const mount = async () => {
 
   // scroll to active button
   setTimeout(() => {
-    console.log(currentTab, ' -----')
-    if (currentTab.scrollTop) {
+    if (currentTab?.scrollTop) {
       const rbm = document.querySelector(".rm-article-wrapper");
       rbm.scrollTop = currentTab.scrollTop
     }
@@ -135,7 +135,6 @@ function App() {
       setTabs(newTab)
     };
     setCurrentTab({ uid, title, blockUid });
-    console.log(tabs, ' 123= tabs', currentTab)
 
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
@@ -245,9 +244,91 @@ function App() {
           ></Button>
         );
       })}
+      <SwitchCommand tabs={tabs} />
     </div>
   );
 }
+
+
+
+function SwitchCommand(props: { tabs: Tab[] }) {
+  const [state, setState] = useState({
+    open: false,
+  })
+  const [activeItem, setActiveItem] = useState<Tab>();
+  useEffect(() => {
+    API.ui.commandPalette.addCommand({
+      label: 'Switch Tab...',
+      callback() {
+        setState({
+          open: !state.open,
+        })
+      },
+    })
+  }, []);
+
+  return <Omnibar
+    isOpen={state.open}
+    onClose={() => setState({ open: false })}
+    items={props.tabs}
+    itemPredicate={(query, item) => {
+      return item.title.toLowerCase().includes(query.toLowerCase())
+    }}
+    itemRenderer={(item, itemProps) => {
+      return <MenuItem
+        onClick={itemProps.handleClick}
+        {...itemProps.modifiers}
+        text={highlightText(item.title, itemProps.query)}
+
+      />
+    }}
+    onItemSelect={(item) => {
+      console.log(item, ' select ')
+      setCurrentTab(item)
+    }}
+    itemListRenderer={(itemListProps) => {
+      return <Menu>
+        {itemListProps.filteredItems.map(itemListProps.renderItem)}
+      </Menu>
+    }}
+  />
+}
+
+function escapeRegExpChars(text: string) {
+  return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+}
+
+function highlightText(text: string, query: string) {
+  let lastIndex = 0;
+  const words = query
+    .split(/\s+/)
+    .filter(word => word.length > 0)
+    .map(escapeRegExpChars);
+  if (words.length === 0) {
+    return [text];
+  }
+  const regexp = new RegExp(words.join("|"), "gi");
+  const tokens: React.ReactNode[] = [];
+  while (true) {
+    const match = regexp.exec(text);
+    if (!match) {
+      break;
+    }
+    const length = match[0].length;
+    const before = text.slice(lastIndex, regexp.lastIndex - length);
+    if (before.length > 0) {
+      tokens.push(before);
+    }
+    lastIndex = regexp.lastIndex;
+    tokens.push(<strong key={lastIndex}>{match[0]}</strong>);
+  }
+  const rest = text.slice(lastIndex);
+  if (rest.length > 0) {
+    tokens.push(rest);
+  }
+  return tokens;
+}
+
 
 function useEvent(handler: Function) {
   const handlerRef = useRef(null);
@@ -298,7 +379,10 @@ function getPageTitleByUid(uid: string) {
 `);
 }
 
+let API: RoamExtensionAPI
+
 export function initExtension(extensionAPI: RoamExtensionAPI) {
+  API = extensionAPI;
   const cacheConfig = loadTabsFromSettings();
   if (cacheConfig) {
     setCurrentTab(cacheConfig.activeTab);
