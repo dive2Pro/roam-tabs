@@ -80,4 +80,7 @@ export default defineConfig({
     ...build,
   },
   logLevel: "error",
+  define: {
+    "process.env.NODE_ENV":  isDev ?  '"development"': '"production"'
+  }
 });

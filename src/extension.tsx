@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FC } from "react";
 import ReactDOM from "react-dom";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
@@ -6,14 +6,26 @@ import { Button, Icon, MenuItem, Menu } from '@blueprintjs/core'
 import { extension_helper } from "./helper";
 import { isAutoOpenNewTab, loadTabsFromSettings, saveTabsToSettings } from "./config";
 import { Omnibar } from "@blueprintjs/select";
+import { NodeGroup } from 'react-move'
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
 
 const delay = (ms = 10) => new Promise((resolve) => setTimeout(() => { resolve(1) }, ms));
 
-const mount = async () => {
-  await delay(250)
+
+function debounce(fn: Function, ms = 500) {
+  let timer = setTimeout(() => { }, 0)
+  return (...args: any[]) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn(...args)
+    }, ms)
+  }
+}
+
+const _mount = async () => {
+  console.log(' mounting :::')
   const roamMain = document.querySelector(".roam-main");
   let el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
@@ -34,32 +46,45 @@ const mount = async () => {
     }
 
     function scrollIntoActiveTab() {
-      const activeEl = el.querySelector(".roam-tab-active");
-      if (!activeEl || !activeEl.parentElement) {
+      const activeEl = document.querySelector(".roam-tab-active") as HTMLElement;
+      const parentEl = activeEl.parentElement;
+      if (!activeEl || !parentEl) {
         return
       }
 
       const childRect = activeEl.getBoundingClientRect();
-      const parentRect = activeEl.parentElement.getBoundingClientRect();
-      const itemLeft = childRect.left - parentRect.left;
+      const parentRect = parentEl.getBoundingClientRect();
+      const itemLeft = activeEl.offsetLeft - parentRect.left;
       const itemRight = itemLeft + childRect.width;
-      const containerLeft = activeEl.parentElement.scrollLeft;
-      const containerRight = containerLeft + childRect.width;
+      const scrollLeft = parentEl.scrollLeft;
+      // const containerRight = containerLeft + childRect.width;
 
-      if (itemLeft < containerLeft || itemRight > containerRight) {
-        // activeEl.parentElement.scroll({
-        //   left: itemLeft
-        // })
-        activeEl.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+      // 假如滑动的距离不足以展示完全的: activeEl
+      // 条件:
+      //  containerLeft < itemLeft + childRect.width  -> containerLeft = itemLeft + childRect.width
+
+      console.log(scrollLeft, itemLeft, childRect, parentRect, activeEl);
+
+      if (scrollLeft < itemLeft) {
+        parentEl.scroll({
+          left: itemLeft
+        })
+      } else if (scrollLeft + parentRect.width < itemLeft) {
+        parentEl.scroll({
+          left: itemLeft
+        })
+      } else if (scrollLeft + parentRect.width > itemRight) {
+        parentEl.scroll({
+          left: itemRight
+        })
       }
     }
     scrollIntoActiveTab();
 
   }, 100)
 };
+
+const mount = debounce(_mount, 150);
 
 let currentTab: Tab | undefined;
 
@@ -89,11 +114,11 @@ const setTabs = (newTab: Tab) => {
     }
     const i = prev.findIndex((tab) => currentTab.uid === tab.uid);
     prev[i] = newTab;
-    console.log(currentTab, i, prev);
+    // console.log(currentTab, i, prev);
 
     return [...prev];
   };
-  console.log("---change: ", JSON.stringify(tabs))
+  // console.log("---change: ", JSON.stringify(tabs))
   tabs = change(tabs);
   mount();
 };
@@ -167,7 +192,7 @@ function App() {
       await new Promise((resolve) => {
         setTimeout(resolve, 100);
       });
-      console.log("change---", e);
+      // console.log("change---", e);
       const index = location.href.indexOf("/page/");
       const uid = e.newURL.split("/").pop();
       if (index === -1) {
@@ -176,7 +201,7 @@ function App() {
       }
       const pageUid = getPageUidByUid(uid);
       const title = getPageTitleByUid(pageUid);
-      console.log("change: ", pageUid, title, uid, tabs);
+      // console.log("change: ", pageUid, title, uid, tabs);
       onChange(pageUid, title, uid);
 
     }
@@ -186,14 +211,14 @@ function App() {
       window.removeEventListener("hashchange", onRouteChange)
     };
   }, []);
+
   useEffect(() => {
     document.addEventListener("pointerdown", onPointerdown);
     return () => {
-      console.log("@@");
       document.removeEventListener("pointerdown", onPointerdown);
     };
   }, []);
-  console.log(tabs);
+
   return (
     <div className="roam-tabs-container">
       {tabs.map((tab) => {
@@ -285,10 +310,49 @@ function SwitchCommand(props: { tabs: Tab[] }) {
     onItemSelect={(item) => {
       console.log(item, ' select ')
       setCurrentTab(item)
+      setState({ open: false })
     }}
     itemListRenderer={(itemListProps) => {
       return <Menu>
-        {itemListProps.filteredItems.map(itemListProps.renderItem)}
+        <NodeGroup
+          data={itemListProps.filteredItems}
+          start={(data, index) => {
+            return {
+              y: 35,
+              opacity: 0
+            }
+          }}
+          enter={(data, index) => {
+            return {
+              opacity: [1],
+              timing: {
+                duration: 250
+              }
+            }
+          }}
+          leave={(data, index) => {
+            return [{
+              y: [-35],
+              timing: {
+                duration: 250
+              }
+            }, {
+              opacity: [0],
+              timing: {
+                duration: 150
+              }
+
+            }]
+          }}
+          keyAccessor={(data) => data.uid}
+        >
+          {(nodes) => {
+            return <>{nodes.map((node, index) => {
+              return <div key={node.key} style={{ opacity: node.state.opacity, height: node.state.y }}>{itemListProps.renderItem(node.data, index)}</div>
+            })}
+            </>
+          }}
+        </NodeGroup>
       </Menu>
     }}
   />
