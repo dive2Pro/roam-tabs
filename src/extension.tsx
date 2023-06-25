@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useReducer } from "react";
 import ReactDOM from "react-dom";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
@@ -34,20 +34,20 @@ const _mount = async () => {
     el = document.createElement("div");
     el.className = clazz;
     roamMain.insertBefore(el, roamBodyMain);
+    ReactDOM.render(<App />, el);
+  } else {
+    forceUpdate()
   }
-  ReactDOM.render(<App />, el);
   saveTabsToSettings(tabs, currentTab);
 
   // scroll to active button
   setTimeout(() => {
-    if (currentTab?.scrollTop) {
-      const rbm = document.querySelector(".rm-article-wrapper");
-      rbm.scrollTop = currentTab.scrollTop
-    }
+    const rbm = document.querySelector(".rm-article-wrapper");
+    rbm.scrollTop = currentTab.scrollTop || 0
 
     function scrollIntoActiveTab() {
       const activeEl = document.querySelector(".roam-tab-active") as HTMLElement;
-      const parentEl = activeEl.parentElement;
+      const parentEl = activeEl?.parentElement;
       if (!activeEl || !parentEl) {
         return
       }
@@ -63,7 +63,7 @@ const _mount = async () => {
       // 条件:
       //  containerLeft < itemLeft + childRect.width  -> containerLeft = itemLeft + childRect.width
 
-      console.log(scrollLeft, itemLeft, childRect, parentRect, activeEl);
+      // console.log(scrollLeft, itemLeft, childRect, parentRect, activeEl);
 
       if (scrollLeft < itemLeft) {
         parentEl.scroll({
@@ -120,7 +120,6 @@ const setTabs = (newTab: Tab) => {
   };
   // console.log("---change: ", JSON.stringify(tabs))
   tabs = change(tabs);
-  mount();
 };
 const removeTab = (uid: string) => {
   const index = tabs.findIndex((tab) => tab.uid === uid);
@@ -131,7 +130,7 @@ const removeTab = (uid: string) => {
   mount();
 };
 
-const setCurrentTab = (v?: Tab) => {
+const _setCurrentTab = (v?: Tab) => {
   if (v) {
     const oldTab = tabs.find((tab) => tab.uid === v.uid);
     currentTab = {
@@ -143,10 +142,13 @@ const setCurrentTab = (v?: Tab) => {
   }
   console.log(tabs, currentTab, ' setCurrentTab')
   v && openUid(v.blockUid);
-  mount();
 };
 
+const setCurrentTab = debounce(_setCurrentTab, 200)
+let routeChanging = false;
+let forceUpdate = () => { };
 function App() {
+  forceUpdate = useReducer(i => i + 1, 0)[1]
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
     if (uid) {
       const oldTab = tabs.find((tab) => tab.uid === uid);
@@ -160,7 +162,7 @@ function App() {
       setTabs(newTab)
     };
     setCurrentTab({ uid, title, blockUid });
-
+    mount();
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
 
@@ -169,14 +171,17 @@ function App() {
     // console.log(scrollTop$, ' ---global')
   });
 
-  const onScroll = useEvent((e: Event) => {
-    const rbm = document.querySelector(".rm-article-wrapper")
 
-    scrollTop$ = rbm.scrollTop
-    recordPosition()
-  })
 
   useEffect(() => {
+    const onScroll = ((e: Event) => {
+      const rbm = document.querySelector(".rm-article-wrapper")
+
+      scrollTop$ = rbm.scrollTop
+      console.log('onScroll ---, ', routeChanging)
+      if (!routeChanging)
+        recordPosition();
+    })
     const rbm = document.querySelector(".rm-article-wrapper")
     if (!rbm) {
       return
@@ -189,20 +194,24 @@ function App() {
   }, [])
   useEffect(() => {
     const onRouteChange = async (e: HashChangeEvent) => {
+      console.log("change---Route", scrollTop$);
+      routeChanging = true;
       await new Promise((resolve) => {
         setTimeout(resolve, 100);
       });
-      // console.log("change---", e);
       const index = location.href.indexOf("/page/");
       const uid = e.newURL.split("/").pop();
+
       if (index === -1) {
         setCurrentTab();
+        mount()
         return;
       }
       const pageUid = getPageUidByUid(uid);
       const title = getPageTitleByUid(pageUid);
       // console.log("change: ", pageUid, title, uid, tabs);
       onChange(pageUid, title, uid);
+      routeChanging = false;
 
     }
     window.addEventListener("hashchange", onRouteChange)
@@ -233,11 +242,13 @@ function App() {
             small
             className={`${active ? "roam-tab-active" : ''} roam-tab`}
             onClick={(e) => {
+              console.log(' button - click ', JSON.stringify(tab))
               if (e.shiftKey) {
                 openInSidebar(tab.uid);
                 return;
               }
               setCurrentTab(tab);
+              mount()
             }}
             rightIcon={
               <Button
@@ -248,6 +259,7 @@ function App() {
                   e.preventDefault();
                   e.stopPropagation();
                   removeTab(tab.uid);
+                  mount();
                 }}
               />
             }
@@ -311,6 +323,7 @@ function SwitchCommand(props: { tabs: Tab[] }) {
       console.log(item, ' select ')
       setCurrentTab(item)
       setState({ open: false })
+      mount();
     }}
     itemListRenderer={(itemListProps) => {
       return <Menu>
@@ -468,13 +481,12 @@ function openInSidebar(uid: string) {
   })
 }
 function recordPosition() {
-  // console.log(currentTab, 'before record', tabs)
 
-  if (currentTab) {
+  if (currentTab && currentTab.scrollTop !== scrollTop$) {
+    console.log(currentTab, '----before record----', tabs)
     currentTab.scrollTop = scrollTop$
     tabs.find((tab) => tab.uid === currentTab.uid).scrollTop = scrollTop$
   }
-  scrollTop$ = 0;
 
-  // console.log(currentTab, 'after record', tabs)
+  console.log(currentTab, '----after record----', tabs)
 }
