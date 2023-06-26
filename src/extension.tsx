@@ -43,7 +43,7 @@ const _mount = async () => {
   // scroll to active button
   setTimeout(() => {
     const rbm = document.querySelector(".rm-article-wrapper");
-    rbm.scrollTop = currentTab.scrollTop || 0
+    rbm.scrollTop = currentTab?.scrollTop || 0
 
     function scrollIntoActiveTab() {
       const activeEl = document.querySelector(".roam-tab-active") as HTMLElement;
@@ -130,7 +130,7 @@ const removeTab = (uid: string) => {
   mount();
 };
 
-const _setCurrentTab = (v?: Tab) => {
+const setCurrentTab = (v?: Tab) => {
   if (v) {
     const oldTab = tabs.find((tab) => tab.uid === v.uid);
     currentTab = {
@@ -144,7 +144,6 @@ const _setCurrentTab = (v?: Tab) => {
   v && openUid(v.blockUid);
 };
 
-const setCurrentTab = debounce(_setCurrentTab, 200)
 let routeChanging = false;
 let forceUpdate = () => { };
 function App() {
@@ -160,8 +159,10 @@ function App() {
         blockUid
       };
       setTabs(newTab)
-    };
-    setCurrentTab({ uid, title, blockUid });
+      setCurrentTab(newTab);
+    } else {
+      setCurrentTab()
+    }
     mount();
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
@@ -194,22 +195,23 @@ function App() {
   }, [])
   useEffect(() => {
     const onRouteChange = async (e: HashChangeEvent) => {
-      console.log("change---Route", scrollTop$);
       routeChanging = true;
       await new Promise((resolve) => {
         setTimeout(resolve, 100);
       });
       const index = location.href.indexOf("/page/");
       const uid = e.newURL.split("/").pop();
+      console.log("change---Route", scrollTop$, `index = ${index}`, uid);
 
       if (index === -1) {
         setCurrentTab();
         mount()
+        routeChanging = false;
         return;
       }
       const pageUid = getPageUidByUid(uid);
       const title = getPageTitleByUid(pageUid);
-      // console.log("change: ", pageUid, title, uid, tabs);
+      console.log("change: true ", pageUid, title, uid, tabs);
       onChange(pageUid, title, uid);
       routeChanging = false;
 
@@ -228,6 +230,7 @@ function App() {
     };
   }, []);
 
+  console.log('render: ', currentTab)
   return (
     <div className="roam-tabs-container">
       {tabs.map((tab) => {
@@ -485,7 +488,9 @@ function recordPosition() {
   if (currentTab && currentTab.scrollTop !== scrollTop$) {
     console.log(currentTab, '----before record----', tabs)
     currentTab.scrollTop = scrollTop$
-    tabs.find((tab) => tab.uid === currentTab.uid).scrollTop = scrollTop$
+    const tab = tabs.find((tab) => tab.uid === currentTab.uid)
+    if (tab)
+      tab.scrollTop = scrollTop$
   }
 
   console.log(currentTab, '----after record----', tabs)
