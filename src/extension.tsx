@@ -144,10 +144,14 @@ const removeTab = (uid: string) => {
   const index = tabs.findIndex((tab) => tab.uid === uid);
   tabs = tabs.filter((tab) => tab.uid !== uid);
   if (currentTab?.uid === uid) {
-    setCurrentTab(tabs[Math.max(0, index - 1)]);
+    setCurrentTab(tabs[Math.max(0, index)]);
   }
   mount();
 };
+
+const removeCurrentTab = () => {
+  currentTab && removeTab(currentTab.uid)
+}
 
 const removeOtherTbas = (lastTab: Tab) => {
   tabs = [lastTab];
@@ -274,6 +278,15 @@ function App() {
       document.removeEventListener("dragend", dragEndListener);
     };
   }, []);
+
+  useEffect(() => {
+    API.ui.commandPalette.addCommand({
+      'label': "Close Current Tab",
+      "callback": () => {
+        removeCurrentTab()
+      }
+    })
+  } , [])
 
   return (
     <div className="roam-tabs-container">
