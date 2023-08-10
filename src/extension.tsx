@@ -1,4 +1,7 @@
-import React, { Component, FC, useReducer } from "react";
+import React, {
+  PureComponent,
+  useReducer,
+} from "react";
 import ReactDOM from "react-dom";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
@@ -40,7 +43,7 @@ function debounce(fn: Function, ms = 500) {
 }
 
 const _mount = async () => {
-  console.log(" mounting :::");
+  // console.log(" mounting :::");
   const roamMain = document.querySelector(".roam-main");
   let el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
@@ -177,6 +180,12 @@ const setCurrentTab = (v?: Tab) => {
 
 let routeChanging = false;
 let forceUpdate = () => {};
+
+let draggingTab: Tab;
+const setDraggingTab = (dragging?: Tab) => {
+  draggingTab = dragging;
+  forceUpdate()
+};
 function App() {
   forceUpdate = useReducer((i) => i + 1, 0)[1];
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
@@ -256,19 +265,35 @@ function App() {
     };
   }, []);
 
-  console.log("render: ", currentTab);
+  React.useEffect(() => {
+    const dragEndListener = () => {
+      setDraggingTab(undefined);
+    };
+    document.addEventListener("dragend", dragEndListener);
+    return () => {
+      document.removeEventListener("dragend", dragEndListener);
+    };
+  }, []);
+
   return (
     <div className="roam-tabs-container">
       {tabs.map((tab, index) => {
         const active = tab.uid === currentTab?.uid;
-        return <AppTab active={active} index={index} tab={tab} />;
+        return <AppTab key={tab.uid} active={active} index={index} tab={tab} />;
       })}
       <SwitchCommand tabs={tabs} />
     </div>
   );
 }
 
-class AppTab extends Component<{ active: boolean; tab: Tab; index: number }> {
+class AppTab extends PureComponent<{
+  active: boolean;
+  tab: Tab;
+  index: number;
+}> {
+  state = {
+    className: "",
+  };
   renderContextMenu() {
     return (
       <Menu>
@@ -280,6 +305,7 @@ class AppTab extends Component<{ active: boolean; tab: Tab; index: number }> {
 
   render() {
     const { active, tab, index } = this.props;
+
     return (
       <Button
         style={{
@@ -288,7 +314,24 @@ class AppTab extends Component<{ active: boolean; tab: Tab; index: number }> {
         intent={active ? "primary" : "none"}
         outlined
         small
-        className={`${active ? "roam-tab-active" : ""} roam-tab`}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          setDraggingTab(tab);
+          e.stopPropagation();
+        }}
+        onDrop={(e) => {
+          console.log("drag end = ", tab, draggingTab);
+          if (draggingTab) {
+            e.dataTransfer.effectAllowed = "move";
+            e.preventDefault();
+            swapTab(tab, draggingTab);
+          }
+        }}
+        data-dragging={draggingTab === tab}
+        className={`${this.state.className} ${
+          active ? "roam-tab-active" : ""
+        } ${draggingTab === tab ? "ring-1 " : ""} roam-tab`}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -296,6 +339,7 @@ class AppTab extends Component<{ active: boolean; tab: Tab; index: number }> {
             <Menu>
               <MenuItem
                 text="Close"
+                tagName="span"
                 onClick={() => {
                   removeTab(tab.uid);
                 }}
@@ -312,7 +356,7 @@ class AppTab extends Component<{ active: boolean; tab: Tab; index: number }> {
                   removeToTheRightTabs(index);
                 }}
                 text="Close to the Right"
-                disabled={index + 1 >= tabs.length }
+                disabled={index + 1 >= tabs.length}
               />
             </Menu>,
             { left: e.clientX, top: e.clientY },
@@ -580,3 +624,11 @@ function recordPosition() {
 
   console.log(currentTab, "----after record----", tabs);
 }
+
+const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
+  const index1 = tabs.findIndex((t) => t.uid === tab.uid);
+  const index2 = tabs.findIndex((t) => t.uid === draggingTab.uid);
+  tabs[index1] = draggingTab;
+  tabs[index2] = tab;
+  mount();
+}, 10);

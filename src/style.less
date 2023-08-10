@@ -9,6 +9,15 @@
         .bp3-button-text {
             display: inline-flex;
         }
+        transition-delay: 1s;
+        transition-property: max-width;
+        &[data-dragging="true"] {
+            // margin: 0 .5rem;
+        }
+        &.over {
+            // border-style: dotted;
+            // background-color: red;
+        }
     }
 
     &-container {
@@ -20,8 +29,6 @@
         overflow-x: auto;
         white-space: nowrap;
         padding: 5px;
-
-
         &:hover::-webkit-scrollbar-thumb {
             background-color: #bfbfbf;
         }
