@@ -6,7 +6,7 @@ Manage your working pages with tabs.
 
 ## Open Page In a New Tab
 
-You can open the switch palette by pressing Ctrl or the Meta key and clicking the link (page or block reference). This will open a new tab.
+You can open a new tab by pressing Ctrl or the Meta key and clicking the link (page or block reference).
 
 You can enable the "Auto" mode, after which just **clicking** will open a tab (if the page tab exists, it will focus on that tab).
 
@@ -37,6 +37,10 @@ Each tab can remember your scroll position and reback to it when you switch back
 ## Open Tab in Sidebar
 
 **Shift** + click on tabs
+
+## you can drag & drop to reorder tabs
+
+## you can right click on the tab to close tab or tabs
 
 
 
