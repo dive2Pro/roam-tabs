@@ -38,9 +38,12 @@ Each tab can remember your scroll position and reback to it when you switch back
 
 **Shift** + click on tabs
 
-## you can drag & drop to reorder tabs
+## Drag & drop to reorder tabs
 
-## you can right click on the tab to close tab or tabs
+## Right click on the tab to close tab or tabs
+
+## Keyboard shortcut for closing the current tab
+
 
 
 
