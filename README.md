@@ -38,11 +38,19 @@ Each tab can remember your scroll position and reback to it when you switch back
 
 **Shift** + click on tabs
 
-## Drag & drop to reorder tabs
 
-## Right click on the tab to close tab or tabs
+## Right-Click to Close Tab(s)
 
-## Keyboard shortcut for closing the current tab
+You can right-click on a tab to close it or other tabs
+
+## Keyboard Shortcut for Closing the Current Tab
+
+There are keyboard shortcuts available for closing tabs. You can set them up in the settings.
+
+
+## Pin Tab
+
+You have the option to pin tabs to keep them in order at the beginning and prevent accidental removal.
 
 
 
