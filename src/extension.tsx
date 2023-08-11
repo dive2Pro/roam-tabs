@@ -158,7 +158,7 @@ const removeOtherTbas = (lastTab: Tab) => {
 };
 
 const removeToTheRightTabs = (index: number) => {
-  tabs = tabs.slice(0, index + 1);
+  tabs = [...tabs.slice(0, index + 1), ...tabs.slice(index + 1).filter( t => t.pin)];
   const currentIndex = tabs.findIndex((t) => t.uid === currentTab?.uid);
   if (currentIndex === -1 || currentIndex > index) {
     setCurrentTab(tabs[index]);
@@ -703,11 +703,6 @@ const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
 
 function toggleTabPin(currentTab: Tab) {
   currentTab.pin = !currentTab.pin;
-  tabs = tabs.sort((a, b) => {
-    if (a.pin) {
-      return -1;
-    }
-    return 0;
-  });
+  tabs = [...tabs.filter( t => t.pin), ...tabs.filter( t => !t.pin)]
   mount();
 }
