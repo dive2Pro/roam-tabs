@@ -1,7 +1,4 @@
-import React, {
-  PureComponent,
-  useReducer,
-} from "react";
+import React, { Component, PureComponent, useReducer } from "react";
 import ReactDOM from "react-dom";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
@@ -12,6 +9,7 @@ import {
   Menu,
   ContextMenuTarget,
   ContextMenu,
+  MenuDivider,
 } from "@blueprintjs/core";
 import { extension_helper } from "./helper";
 import {
@@ -150,8 +148,8 @@ const removeTab = (uid: string) => {
 };
 
 const removeCurrentTab = () => {
-  currentTab && removeTab(currentTab.uid)
-}
+  currentTab && removeTab(currentTab.uid);
+};
 
 const removeOtherTbas = (lastTab: Tab) => {
   tabs = [lastTab];
@@ -188,7 +186,7 @@ let forceUpdate = () => {};
 let draggingTab: Tab;
 const setDraggingTab = (dragging?: Tab) => {
   draggingTab = dragging;
-  forceUpdate()
+  forceUpdate();
 };
 function App() {
   forceUpdate = useReducer((i) => i + 1, 0)[1];
@@ -281,33 +279,42 @@ function App() {
 
   useEffect(() => {
     API.ui.commandPalette.addCommand({
-      'label': "Close Current Tab",
-      "callback": () => {
-        removeCurrentTab()
-      }
+      label: "Close Current Tab",
+      callback: () => {
+        removeCurrentTab();
+      },
     });
 
     API.ui.commandPalette.addCommand({
-      'label': "Close Other Tabs",
-      "callback": () => {
-        removeOtherTbas(currentTab)
-      }
+      label: "Close Other Tabs",
+      callback: () => {
+        removeOtherTbas(currentTab);
+      },
     });
 
     API.ui.commandPalette.addCommand({
-      'label': "Close to the right",
-      "callback": () => {
-        if(!currentTab) {
-          return
+      label: "Close to the right",
+      callback: () => {
+        if (!currentTab) {
+          return;
         }
-        const index = tabs.findIndex( v => v.uid === currentTab.uid)
-        if(index === -1) {
-          return
+        const index = tabs.findIndex((v) => v.uid === currentTab.uid);
+        if (index === -1) {
+          return;
         }
-        removeToTheRightTabs(index)
-      }
+        removeToTheRightTabs(index);
+      },
     });
-  } , [currentTab])
+    API.ui.commandPalette.addCommand({
+      label: "Pin",
+      callback: () => {
+        if (!currentTab) {
+          return;
+        }
+        toggleTabPin(currentTab);
+      },
+    });
+  }, [currentTab]);
 
   return (
     <div className="roam-tabs-container">
@@ -320,7 +327,7 @@ function App() {
   );
 }
 
-class AppTab extends PureComponent<{
+class AppTab extends Component<{
   active: boolean;
   tab: Tab;
   index: number;
@@ -359,6 +366,11 @@ class AppTab extends PureComponent<{
           if (draggingTab) {
             e.dataTransfer.effectAllowed = "move";
             e.preventDefault();
+            if(tab.pin) {
+              draggingTab.pin = true
+            } else {
+              draggingTab.pin = false
+            }
             swapTab(tab, draggingTab);
           }
         }}
@@ -392,6 +404,13 @@ class AppTab extends PureComponent<{
                 text="Close to the Right"
                 disabled={index + 1 >= tabs.length}
               />
+              <MenuDivider />
+              <MenuItem
+                onClick={() => {
+                  toggleTabPin(tab);
+                }}
+                text="Pin"
+              />
             </Menu>,
             { left: e.clientX, top: e.clientY },
             () => {}
@@ -406,17 +425,32 @@ class AppTab extends PureComponent<{
           mount();
         }}
         rightIcon={
-          <Button
-            minimal
-            small
-            icon={<Icon color="#ABB3BF" icon="small-cross" />}
-            onClickCapture={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              removeTab(tab.uid);
-              mount();
-            }}
-          />
+          tab.pin ? (
+            <Button
+              minimal
+              small
+              intent="danger"
+              icon={<Icon icon="pin" />}
+              onClickCapture={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleTabPin(tab);
+                mount();
+              }}
+            />
+          ) : (
+            <Button
+              minimal
+              small
+              icon={<Icon color="#ABB3BF" icon="small-cross" />}
+              onClickCapture={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                removeTab(tab.uid);
+                mount();
+              }}
+            />
+          )
         }
         text={
           <div
@@ -666,3 +700,14 @@ const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
   tabs[index2] = tab;
   mount();
 }, 10);
+
+function toggleTabPin(currentTab: Tab) {
+  currentTab.pin = !currentTab.pin;
+  tabs = tabs.sort((a, b) => {
+    if (a.pin) {
+      return -1;
+    }
+    return 0;
+  });
+  mount();
+}
