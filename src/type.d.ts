@@ -22,4 +22,4 @@ type Command = {
 }
 
 
-type Tab = { uid: string, title: string, blockUid: string, scrollTop?: number };
+type Tab = { uid: string, title: string, blockUid: string, scrollTop?: number, pin: boolean };

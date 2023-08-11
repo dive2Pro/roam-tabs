@@ -152,7 +152,7 @@ const removeCurrentTab = () => {
 };
 
 const removeOtherTbas = (lastTab: Tab) => {
-  tabs = [lastTab];
+  tabs = [ ...tabs.filter(v => v.pin || v.uid === lastTab.uid), ];
   setCurrentTab(lastTab);
   mount();
 };
@@ -409,7 +409,7 @@ class AppTab extends Component<{
                 onClick={() => {
                   toggleTabPin(tab);
                 }}
-                text="Pin"
+                text={tab.pin ? "Unpin" : 'Pin'}
               />
             </Menu>,
             { left: e.clientX, top: e.clientY },
