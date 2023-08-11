@@ -285,8 +285,29 @@ function App() {
       "callback": () => {
         removeCurrentTab()
       }
-    })
-  } , [])
+    });
+
+    API.ui.commandPalette.addCommand({
+      'label': "Close Other Tabs",
+      "callback": () => {
+        removeOtherTbas(currentTab)
+      }
+    });
+
+    API.ui.commandPalette.addCommand({
+      'label': "Close to the right",
+      "callback": () => {
+        if(!currentTab) {
+          return
+        }
+        const index = tabs.findIndex( v => v.uid === currentTab.uid)
+        if(index === -1) {
+          return
+        }
+        removeToTheRightTabs(index)
+      }
+    });
+  } , [currentTab])
 
   return (
     <div className="roam-tabs-container">
