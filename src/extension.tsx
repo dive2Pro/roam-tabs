@@ -698,11 +698,16 @@ const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
   const index2 = tabs.findIndex((t) => t.uid === draggingTab.uid);
   tabs[index1] = draggingTab;
   tabs[index2] = tab;
+  sortTabByPin();
   mount();
 }, 10);
 
+function sortTabByPin() {
+  tabs = [...tabs.filter((t) => t.pin), ...tabs.filter((t) => !t.pin)];
+}
+
 function toggleTabPin(currentTab: Tab) {
   currentTab.pin = !currentTab.pin;
-  tabs = [...tabs.filter( t => t.pin), ...tabs.filter( t => !t.pin)]
+  sortTabByPin();
   mount();
 }
