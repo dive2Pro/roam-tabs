@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
 import {
+  Classes,
   Button,
   Icon,
   MenuItem,
@@ -10,6 +11,8 @@ import {
   ContextMenuTarget,
   ContextMenu,
   MenuDivider,
+  Popover,
+  Position
 } from "@blueprintjs/core";
 import { extension_helper } from "./helper";
 import {
@@ -19,6 +22,8 @@ import {
 } from "./config";
 import { Omnibar } from "@blueprintjs/select";
 import { NodeGroup } from "react-move";
+// @ts-ignore
+import { DatePicker } from '@blueprintjs/datetime'
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
@@ -152,13 +157,16 @@ const removeCurrentTab = () => {
 };
 
 const removeOtherTbas = (lastTab: Tab) => {
-  tabs = [ ...tabs.filter(v => v.pin || v.uid === lastTab.uid), ];
+  tabs = [...tabs.filter((v) => v.pin || v.uid === lastTab.uid)];
   setCurrentTab(lastTab);
   mount();
 };
 
 const removeToTheRightTabs = (index: number) => {
-  tabs = [...tabs.slice(0, index + 1), ...tabs.slice(index + 1).filter( t => t.pin)];
+  tabs = [
+    ...tabs.slice(0, index + 1),
+    ...tabs.slice(index + 1).filter((t) => t.pin),
+  ];
   const currentIndex = tabs.findIndex((t) => t.uid === currentTab?.uid);
   if (currentIndex === -1 || currentIndex > index) {
     setCurrentTab(tabs[index]);
@@ -335,14 +343,6 @@ class AppTab extends Component<{
   state = {
     className: "",
   };
-  renderContextMenu() {
-    return (
-      <Menu>
-        <MenuItem onClick={() => {}} text="Save" />
-        <MenuItem onClick={() => {}} text="Delete" />
-      </Menu>
-    );
-  }
 
   render() {
     const { active, tab, index } = this.props;
@@ -362,14 +362,13 @@ class AppTab extends Component<{
           e.stopPropagation();
         }}
         onDrop={(e) => {
-          console.log("drag end = ", tab, draggingTab);
           if (draggingTab) {
             e.dataTransfer.effectAllowed = "move";
             e.preventDefault();
-            if(tab.pin) {
-              draggingTab.pin = true
+            if (tab.pin) {
+              draggingTab.pin = true;
             } else {
-              draggingTab.pin = false
+              draggingTab.pin = false;
             }
             swapTab(tab, draggingTab);
           }
@@ -409,7 +408,7 @@ class AppTab extends Component<{
                 onClick={() => {
                   toggleTabPin(tab);
                 }}
-                text={tab.pin ? "Unpin" : 'Pin'}
+                text={tab.pin ? "Unpin" : "Pin"}
               />
             </Menu>,
             { left: e.clientX, top: e.clientY },
@@ -424,6 +423,7 @@ class AppTab extends Component<{
           setCurrentTab(tab);
           mount();
         }}
+        // icon={<DateSelect tab={tab} />}
         rightIcon={
           tab.pin ? (
             <Button
@@ -467,9 +467,41 @@ class AppTab extends Component<{
             {tab.title}
           </div>
         }
-      ></Button>
+      />
     );
   }
+}
+
+function isDateUid(title: string) {
+  return !!window.roamAlphaAPI.util.pageTitleToDate(title);
+}
+
+function DateSelect({ tab }: { tab: Tab }) {
+  if (!isDateUid(tab.title)) {
+    return null;
+  }
+
+  return (
+    <Popover
+      content={
+        <DatePicker
+          className={Classes.ELEVATION_1}
+         
+          shortcuts
+          showActionsBar
+          highlightCurrentDay
+          timePrecision={null}
+        />
+      }
+    >
+      <Button
+        icon="calendar"
+        intent={currentTab?.uid === tab.uid ? "primary" : "none"}
+        color="primary"
+        minimal
+      />
+    </Popover>
+  );
 }
 
 function SwitchCommand(props: { tabs: Tab[] }) {
@@ -703,6 +735,6 @@ const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
 
 function toggleTabPin(currentTab: Tab) {
   currentTab.pin = !currentTab.pin;
-  tabs = [...tabs.filter( t => t.pin), ...tabs.filter( t => !t.pin)]
+  tabs = [...tabs.filter((t) => t.pin), ...tabs.filter((t) => !t.pin)];
   mount();
 }
