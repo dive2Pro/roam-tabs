@@ -52,6 +52,11 @@ There are keyboard shortcuts available for closing tabs. You can set them up in 
 
 You have the option to pin tabs to keep them in order at the beginning and prevent accidental removal.
 
+## Drag & Drop to rearrange the tabs
+
+
+https://github.com/dive2Pro/roam-tabs/assets/23192045/806e9f37-076c-4f2c-bf34-1d1e0c0d0fd8
+
 
 
 
