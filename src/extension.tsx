@@ -177,7 +177,10 @@ const setCurrentTab = (v?: Tab) => {
     currentTab = v;
   }
   console.log(tabs, currentTab, " setCurrentTab");
-  v && openUid(v.blockUid);
+  // 如果发现 v.blockUid 已经不在该页面下, 改为打开 page uid
+  if(!v) return;
+  const targetUid = getUidExitsInPage(v);
+  openUid(targetUid);
 };
 
 let routeChanging = false;
@@ -711,3 +714,14 @@ function toggleTabPin(currentTab: Tab) {
   sortTabByPin();
   mount();
 }
+function getUidExitsInPage(v: Tab) {
+  return !!window.roamAlphaAPI.q(`
+  [
+    :find ?e .
+    :where
+     [?e :block/uid "${v.blockUid}"]
+     [?p :block/uid "${v.uid}"]
+     [?e :block/page ?p]
+  ]`) ? v.blockUid : v.uid
+}
+
