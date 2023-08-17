@@ -139,7 +139,21 @@ const setTabs = (newTab: Tab) => {
   tabs = change(tabs);
 };
 const removeTab = (uid: string) => {
+  const tab = tabs.find( tab => tab.uid === uid);
+  if(!tab) {
+    return;
+  }
   const index = tabs.findIndex((tab) => tab.uid === uid);
+
+  if(tab.pin) {
+    // find first unpin tab
+    const unpinTabIndex = tabs.findIndex(tab => !tab.pin)
+    if(unpinTabIndex > -1) {
+      setCurrentTab(tabs[unpinTabIndex]);
+    }
+    return;
+  }
+
   tabs = tabs.filter((tab) => tab.uid !== uid);
   if (currentTab?.uid === uid) {
     setCurrentTab(tabs[Math.min(index, tabs.length - 1)]);
