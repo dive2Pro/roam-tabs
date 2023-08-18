@@ -11,7 +11,7 @@ import {
   ContextMenu,
   MenuDivider,
 } from "@blueprintjs/core";
-import { extension_helper } from "./helper";
+import { copyToClipboard, extension_helper } from "./helper";
 import {
   isAutoOpenNewTab,
   loadTabsFromSettings,
@@ -383,12 +383,12 @@ class AppTab extends Component<{
         draggable
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = "move";
-          console.log("onDragStart");
+          // console.log("onDragStart");
           setDraggingTab(tab);
           e.stopPropagation();
         }}
         onDragOver={(e) => {
-          console.log(' drag over: ', tab, draggingTab);
+          // console.log(' drag over: ', tab, draggingTab);
           e.preventDefault();
           e.dataTransfer.effectAllowed = "move";
           if (draggingTab) {
@@ -429,6 +429,20 @@ class AppTab extends Component<{
                 }}
                 text="Close to the Right"
                 disabled={index + 1 >= tabs.length}
+              />
+              <MenuDivider />
+              <MenuItem
+                onClick={() => {
+                  copyToClipboard(`[[${tab.title}]]`);
+                }}
+                text="Copy Page Reference"
+              />
+              <MenuDivider />
+              <MenuItem
+                onClick={() => {
+                  openInSidebar(tab.uid)
+                }}
+                text="Open in Sidebar"
               />
               <MenuDivider />
               <MenuItem

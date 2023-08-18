@@ -12,6 +12,24 @@ export const extension_helper = {
   },
 };
 
+export function copyToClipboard(text: string) {
+  try {
+    navigator.clipboard.writeText(text).then(() => {
+      console.log("Text copied to clipboard");
+    });
+  } catch (e) {
+    oldCopyToClipboard(text);
+  }
+  function oldCopyToClipboard(text: string) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    console.log("Text copied to clipboard");
+  }
+}
 export const appendToTopbar = (name: string) => {
   //Add button (thanks Tyler Wince!)
   var nameToUse = name; //Change to whatever
