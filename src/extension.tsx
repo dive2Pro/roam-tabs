@@ -139,16 +139,16 @@ const setTabs = (newTab: Tab) => {
   tabs = change(tabs);
 };
 const removeTab = (uid: string) => {
-  const tab = tabs.find( tab => tab.uid === uid);
-  if(!tab) {
+  const tab = tabs.find((tab) => tab.uid === uid);
+  if (!tab) {
     return;
   }
   const index = tabs.findIndex((tab) => tab.uid === uid);
 
-  if(tab.pin) {
+  if (tab.pin) {
     // find first unpin tab
-    const unpinTabIndex = tabs.findIndex(tab => !tab.pin)
-    if(unpinTabIndex > -1) {
+    const unpinTabIndex = tabs.findIndex((tab) => !tab.pin);
+    if (unpinTabIndex > -1) {
       setCurrentTab(tabs[unpinTabIndex]);
     }
     return;
@@ -166,13 +166,16 @@ const removeCurrentTab = () => {
 };
 
 const removeOtherTbas = (lastTab: Tab) => {
-  tabs = [ ...tabs.filter(v => v.pin || v.uid === lastTab.uid), ];
+  tabs = [...tabs.filter((v) => v.pin || v.uid === lastTab.uid)];
   setCurrentTab(lastTab);
   mount();
 };
 
 const removeToTheRightTabs = (index: number) => {
-  tabs = [...tabs.slice(0, index + 1), ...tabs.slice(index + 1).filter( t => t.pin)];
+  tabs = [
+    ...tabs.slice(0, index + 1),
+    ...tabs.slice(index + 1).filter((t) => t.pin),
+  ];
   const currentIndex = tabs.findIndex((t) => t.uid === currentTab?.uid);
   if (currentIndex === -1 || currentIndex > index) {
     setCurrentTab(tabs[index]);
@@ -192,7 +195,7 @@ const setCurrentTab = (v?: Tab) => {
   }
   console.log(tabs, currentTab, " setCurrentTab");
   // 如果发现 v.blockUid 已经不在该页面下, 改为打开 page uid
-  if(!v) return;
+  if (!v) return;
   const targetUid = getUidExitsInPage(v);
   openUid(targetUid);
 };
@@ -201,6 +204,11 @@ let routeChanging = false;
 let forceUpdate = () => {};
 
 let draggingTab: Tab;
+let draggingTargetTab: Tab;
+const setDraggingTargetTab = (dragging?: Tab) => {
+  draggingTargetTab = dragging;
+  forceUpdate();
+};
 const setDraggingTab = (dragging?: Tab) => {
   draggingTab = dragging;
   forceUpdate();
@@ -375,18 +383,19 @@ class AppTab extends Component<{
         draggable
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = "move";
+          console.log("onDragStart");
           setDraggingTab(tab);
           e.stopPropagation();
         }}
-        onDrop={(e) => {
-          console.log("drag end = ", tab, draggingTab);
+        onDragOver={(e) => {
+          console.log(' drag over: ', tab, draggingTab);
+          e.preventDefault();
+          e.dataTransfer.effectAllowed = "move";
           if (draggingTab) {
-            e.dataTransfer.effectAllowed = "move";
-            e.preventDefault();
-            if(tab.pin) {
-              draggingTab.pin = true
+            if (tab.pin) {
+              draggingTab.pin = true;
             } else {
-              draggingTab.pin = false
+              draggingTab.pin = false;
             }
             swapTab(tab, draggingTab);
           }
@@ -426,7 +435,7 @@ class AppTab extends Component<{
                 onClick={() => {
                   toggleTabPin(tab);
                 }}
-                text={tab.pin ? "Unpin" : 'Pin'}
+                text={tab.pin ? "Unpin" : "Pin"}
               />
             </Menu>,
             { left: e.clientX, top: e.clientY },
@@ -713,10 +722,16 @@ function recordPosition() {
 const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
   const index1 = tabs.findIndex((t) => t.uid === tab.uid);
   const index2 = tabs.findIndex((t) => t.uid === draggingTab.uid);
-  tabs[index1] = draggingTab;
-  tabs[index2] = tab;
-  sortTabByPin();
-  mount();
+  tabs.splice(index2, 1);
+  tabs = [...tabs.slice(0, index1), draggingTab, ...tabs.slice(index1)];
+  // tabs[index1] = draggingTab;
+  // tabs[index2] = tab;
+  // sortTabByPin();
+  // console.log(tabs, ' swapped')
+  // mount();
+  forceUpdate();
+  saveTabsToSettings(tabs, currentTab);
+
 }, 10);
 
 function sortTabByPin() {
@@ -736,6 +751,7 @@ function getUidExitsInPage(v: Tab) {
      [?e :block/uid "${v.blockUid}"]
      [?p :block/uid "${v.uid}"]
      [?e :block/page ?p]
-  ]`) ? v.blockUid : v.uid
+  ]`)
+    ? v.blockUid
+    : v.uid;
 }
-
