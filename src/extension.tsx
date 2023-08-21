@@ -10,6 +10,7 @@ import {
   ContextMenuTarget,
   ContextMenu,
   MenuDivider,
+  Tooltip,
 } from "@blueprintjs/core";
 import { copyToClipboard, extension_helper } from "./helper";
 import {
@@ -97,7 +98,16 @@ const _mount = async () => {
         });
       }
     }
-    scrollIntoActiveTab();
+    // scrollIntoActiveTab();
+    makeActiveTabMoveIntoVersion();
+    function makeActiveTabMoveIntoVersion() {
+      const activeEl = document.querySelector(
+        ".roam-tab-active"
+      ) as HTMLElement;
+      activeEl.scrollIntoView({
+        behavior: 'smooth'
+      })
+    }
   }, 100);
 };
 
@@ -342,13 +352,17 @@ function App() {
   }, [currentTab]);
 
   return (
-    <div className="roam-tabs-container">
-      {tabs.map((tab, index) => {
-        const active = tab.uid === currentTab?.uid;
-        return <AppTab key={tab.uid} active={active} index={index} tab={tab} />;
-      })}
+    <>
+      <div className="roam-tabs-container">
+        {tabs.map((tab, index) => {
+          const active = tab.uid === currentTab?.uid;
+          return (
+            <AppTab key={tab.uid} active={active} index={index} tab={tab} />
+          );
+        })}
+      </div>
       <SwitchCommand tabs={tabs} />
-    </div>
+    </>
   );
 }
 
@@ -440,7 +454,7 @@ class AppTab extends Component<{
               <MenuDivider />
               <MenuItem
                 onClick={() => {
-                  openInSidebar(tab.uid)
+                  openInSidebar(tab.uid);
                 }}
                 text="Open in Sidebar"
               />
@@ -745,7 +759,6 @@ const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
   // mount();
   forceUpdate();
   saveTabsToSettings(tabs, currentTab);
-
 }, 10);
 
 function sortTabByPin() {
