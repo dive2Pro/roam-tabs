@@ -105,8 +105,8 @@ const _mount = async () => {
         ".roam-tab-active"
       ) as HTMLElement;
       activeEl.scrollIntoView({
-        behavior: 'smooth'
-      })
+        behavior: "smooth",
+      });
     }
   }, 100);
 };
@@ -225,10 +225,14 @@ const setDraggingTab = (dragging?: Tab) => {
 };
 function App() {
   forceUpdate = useReducer((i) => i + 1, 0)[1];
+  console.log(currentTab, ' ----------- ')
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
     if (uid) {
       const oldTab = tabs.find((tab) => tab.uid === uid);
-
+      let oldCtrlKeyPressed = ctrlKeyPressed;
+      if (currentTab.pin) {
+        ctrlKeyPressed = true;
+      }
       const newTab = {
         ...oldTab,
         uid,
@@ -237,6 +241,7 @@ function App() {
       };
       setTabs(newTab);
       setCurrentTab(newTab);
+      ctrlKeyPressed = oldCtrlKeyPressed;
     } else {
       setCurrentTab();
     }
@@ -266,28 +271,36 @@ function App() {
       rbm.removeEventListener("scroll", onScroll);
     };
   }, []);
-  useEffect(() => {
-    const onRouteChange = async (e: HashChangeEvent) => {
-      routeChanging = true;
-      await new Promise((resolve) => {
-        setTimeout(resolve, 100);
-      });
-      const index = location.href.indexOf("/page/");
-      const uid = e.newURL.split("/").pop();
-      console.log("change---Route", scrollTop$, `index = ${index}`, uid);
+  const onRouteChange = useEvent(async (e: HashChangeEvent) => {
+    routeChanging = true;
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100);
+    });
+    const index = location.href.indexOf("/page/");
+    const uid = e.newURL.split("/").pop();
+    console.log("change---Route", scrollTop$, `index = ${index}`, uid);
 
-      if (index === -1) {
-        setCurrentTab();
-        mount();
-        routeChanging = false;
-        return;
-      }
-      const pageUid = getPageUidByUid(uid);
-      const title = getPageTitleByUid(pageUid);
-      console.log("change: true ", pageUid, title, uid, tabs);
-      onChange(pageUid, title, uid);
+    if (index === -1) {
+      setCurrentTab();
+      mount();
       routeChanging = false;
-    };
+      return;
+    }
+    const pageUid = getPageUidByUid(uid);
+    const title = getPageTitleByUid(pageUid);
+    console.log(
+      "change: true ",
+      pageUid,
+      title,
+      uid,
+      tabs,
+      `current Tab: `,
+      currentTab
+    );
+    onChange(pageUid, title, uid);
+    routeChanging = false;
+  });
+  useEffect(() => {
     window.addEventListener("hashchange", onRouteChange);
 
     return () => {
@@ -374,14 +387,6 @@ class AppTab extends Component<{
   state = {
     className: "",
   };
-  renderContextMenu() {
-    return (
-      <Menu>
-        <MenuItem onClick={() => {}} text="Save" />
-        <MenuItem onClick={() => {}} text="Delete" />
-      </Menu>
-    );
-  }
 
   render() {
     const { active, tab, index } = this.props;
@@ -765,10 +770,14 @@ function sortTabByPin() {
   tabs = [...tabs.filter((t) => t.pin), ...tabs.filter((t) => !t.pin)];
 }
 
-function toggleTabPin(currentTab: Tab) {
-  currentTab.pin = !currentTab.pin;
+function toggleTabPin(tab: Tab) {
+  tab.pin = !tab.pin;
+  if(currentTab?.uid === tab.uid) {
+    currentTab.pin = tab.pin;
+  }
   sortTabByPin();
   mount();
+  console.log(` toggle pin: `, currentTab)
 }
 function getUidExitsInPage(v: Tab) {
   return !!window.roamAlphaAPI.q(`
