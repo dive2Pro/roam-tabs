@@ -104,7 +104,7 @@ const _mount = async () => {
       const activeEl = document.querySelector(
         ".roam-tab-active"
       ) as HTMLElement;
-      activeEl.scrollIntoView({
+      activeEl && activeEl.scrollIntoView({
         behavior: "smooth",
       });
     }
@@ -130,14 +130,16 @@ const setTabs = (newTab: Tab) => {
     if (prev.length === 0) {
       return [newTab];
     }
+    console.log(`set Tabs = `, index, JSON.stringify(prev), newTab);
+
     if (index !== -1) {
       prev[index] = newTab;
       return prev;
     }
+
     if (!currentTab) {
-      prev[0] = newTab;
       setCurrentTab(newTab);
-      return [...prev];
+      return [...prev, newTab];
     }
     const i = prev.findIndex((tab) => currentTab.uid === tab.uid);
     prev[i] = newTab;
@@ -225,12 +227,11 @@ const setDraggingTab = (dragging?: Tab) => {
 };
 function App() {
   forceUpdate = useReducer((i) => i + 1, 0)[1];
-  console.log(currentTab, ' ----------- ')
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
     if (uid) {
       const oldTab = tabs.find((tab) => tab.uid === uid);
       let oldCtrlKeyPressed = ctrlKeyPressed;
-      if (currentTab.pin) {
+      if (currentTab?.pin) {
         ctrlKeyPressed = true;
       }
       const newTab = {
