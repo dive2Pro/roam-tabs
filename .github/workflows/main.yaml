@@ -48,7 +48,7 @@ jobs:
                 "name": "Roam Tabs",
                 "short_description": "A plugin that allows you to organize the pages you're working on into tabs.",
                 "author": "hyc",
-                "stripe_account": "acct_1LLkJkQbYbNOfzpa"
+                "stripe_account": "acct_1LLkJkQbYbNOfzpa",
                 "source_url": "${{github.server_url}}/${{ github.repository }}",
                 "source_repo": "${{github.server_url}}/${{ github.repository }}.git",
                 "source_commit": "$GITHUB_SHA"
