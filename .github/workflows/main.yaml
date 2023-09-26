@@ -45,13 +45,13 @@ jobs:
           mkdir ${{ env.EXTENSION_DIR }} || true
           cat <<EOF > ${{ env.EXTENSION_JSON }}
               {
-                "name": "",
-                "short_description": "",
-                "author": "",
+                "name": "Roam Tabs",
+                "short_description": "A plugin that allows you to organize the pages you're working on into tabs.",
+                "author": "hyc",
+                "stripe_account": "acct_1LLkJkQbYbNOfzpa"
                 "source_url": "${{github.server_url}}/${{ github.repository }}",
                 "source_repo": "${{github.server_url}}/${{ github.repository }}.git",
-                "source_commit": "$GITHUB_SHA",
-                "stripe_account": ""
+                "source_commit": "$GITHUB_SHA"
               }            
           EOF
 
