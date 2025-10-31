@@ -536,7 +536,6 @@ function SwitchCommand(props: { tabs: Tab[] }) {
   const [state, setState] = useState({
     open: false,
   });
-  const [activeItem, setActiveItem] = useState<Tab>();
   useEffect(() => {
     API.ui.commandPalette.addCommand({
       label: "Switch Tab...",

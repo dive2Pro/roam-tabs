@@ -26,6 +26,11 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
   });
 }
 
+function getSettingsKeyWithUser() {
+  // @ts-ignore
+  return `${Keys.Tabs}-${window.roamAlphaAPI.user.uid()}`
+}
+
 export function isAutoOpenNewTab() {
   return API.settings.get(Keys.Auto) === true;
 }
@@ -33,11 +38,14 @@ export function isAutoOpenNewTab() {
 type CacheTab = { tabs: Tab[]; activeTab: Tab };
 
 export function loadTabsFromSettings(): CacheTab {
+  if(API.settings.get(getSettingsKeyWithUser())) {
+    return API.settings.get(getSettingsKeyWithUser()) as CacheTab;
+  }
   return API.settings.get(Keys.Tabs) as CacheTab;
 }
 
 export function saveTabsToSettings(tabs: Tab[], activeTab: Tab) {
-  API.settings.set(Keys.Tabs, {
+  API.settings.set(getSettingsKeyWithUser(), {
     tabs,
     activeTab,
   });
