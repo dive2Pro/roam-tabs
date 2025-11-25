@@ -20,6 +20,7 @@ import {
 } from "./config";
 import { Omnibar } from "@blueprintjs/select";
 import { NodeGroup } from "react-move";
+import { RoamExtensionAPI, Tab } from "./type";
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
@@ -104,9 +105,10 @@ const _mount = async () => {
       const activeEl = document.querySelector(
         ".roam-tab-active"
       ) as HTMLElement;
-      activeEl && activeEl.scrollIntoView({
-        behavior: "smooth",
-      });
+      activeEl &&
+        activeEl.scrollIntoView({
+          behavior: "smooth",
+        });
     }
   }, 100);
 };
@@ -547,6 +549,21 @@ function SwitchCommand(props: { tabs: Tab[] }) {
     });
   }, []);
 
+  // 当打开时选中 input 文字
+  useEffect(() => {
+    if (state.open) {
+      // 使用 setTimeout 确保 DOM 已经渲染
+      setTimeout(() => {
+        const input = document.querySelector(
+          ".bp3-omnibar input"
+        ) as HTMLInputElement;
+        if (input) {
+          input.select();
+        }
+      }, 0);
+    }
+  }, [state.open]);
+
   return (
     <Omnibar
       isOpen={state.open}
@@ -772,12 +789,12 @@ function sortTabByPin() {
 
 function toggleTabPin(tab: Tab) {
   tab.pin = !tab.pin;
-  if(currentTab?.uid === tab.uid) {
+  if (currentTab?.uid === tab.uid) {
     currentTab.pin = tab.pin;
   }
   sortTabByPin();
   mount();
-  console.log(` toggle pin: `, currentTab)
+  console.log(` toggle pin: `, currentTab);
 }
 function getUidExitsInPage(v: Tab) {
   return !!window.roamAlphaAPI.q(`

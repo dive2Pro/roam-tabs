@@ -53,7 +53,7 @@ declare global {
           openBlock: (options: { block: { uid: string } }) => void;
         };
         rightSidebar: {
-          addWindow: (options: { window: { "block-uid": string } }) => void;
+          addWindow: (options: { window: { "block-uid": string; type: string } }) => void;
         };
       };
     };

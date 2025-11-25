@@ -1,6 +1,7 @@
 import { extension_helper } from "./helper";
 import { initExtension } from "./extension";
 import { initConfig } from "./config";
+import { RoamExtensionAPI } from "./type";
 
 function onload({ extensionAPI }: { extensionAPI: RoamExtensionAPI }) {
   initConfig(extensionAPI);
