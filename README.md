@@ -16,15 +16,15 @@ You can enable the "Auto" mode, after which just **clicking** will open a tab (i
 
 ![image](https://github.com/dive2Pro/roam-tabs/assets/23192045/820e8902-0532-4a6e-ab3b-4d1f2d4f123a)
 
-
 You can open the switch palette by
 
 1. Command Pallete
-![image](https://github.com/dive2Pro/roam-tabs/assets/23192045/212bdf80-1c5c-4da3-b545-9db90b8a405d)
+   ![image](https://github.com/dive2Pro/roam-tabs/assets/23192045/212bdf80-1c5c-4da3-b545-9db90b8a405d)
 
 2. custom hotkeys
-![image](https://github.com/dive2Pro/roam-tabs/assets/23192045/5fe48402-a157-490e-b408-3b57e35bbb25)
+   ![image](https://github.com/dive2Pro/roam-tabs/assets/23192045/5fe48402-a157-490e-b408-3b57e35bbb25)
 
+When the switch palette opens, the input text is automatically selected, so you can start typing immediately to search for tabs.
 
 ## Remember scroll position
 
@@ -32,12 +32,9 @@ Each tab can remember your scroll position and reback to it when you switch back
 
 ![remember tab position](https://github.com/dive2Pro/roam-tabs/assets/23192045/d2413b24-8859-429e-a7a8-44241897aedc)
 
-
-
 ## Open Tab in Sidebar
 
 **Shift** + click on tabs
-
 
 ## Right-Click to Close Tab(s)
 
@@ -47,17 +44,32 @@ You can right-click on a tab to close it or other tabs
 
 There are keyboard shortcuts available for closing tabs. You can set them up in the settings.
 
-
 ## Pin Tab
 
 You have the option to pin tabs to keep them in order at the beginning and prevent accidental removal.
 
 ## Drag & Drop to rearrange the tabs
 
-
 https://github.com/dive2Pro/roam-tabs/assets/23192045/806e9f37-076c-4f2c-bf34-1d1e0c0d0fd8
 
+## Settings (Admin Only)
 
+### Initial Tabs for Visitors
 
+As an admin, you can configure initial tabs that will be shown to visitors and collaborators when they first open the workspace. This feature allows you to:
 
+- Search and select pages from your Roam database
+- Set up a default set of tabs for new users
+- Manage the initial tabs list through a multi-select interface
 
+To configure initial tabs:
+
+1. Go to Extension Settings
+2. Find "Initial Tabs for Visitors" section
+3. Use the search box to find and select pages
+4. Selected pages will appear as tags that can be removed individually
+5. Click the clear button (×) to remove all selections
+
+### Collaborator Tabs
+
+When enabled, this option allows collaborators to save their personal tab state to browser local storage. Their tab configuration will be restored after page refresh, providing a personalized experience while still respecting the initial tabs set by admins.
