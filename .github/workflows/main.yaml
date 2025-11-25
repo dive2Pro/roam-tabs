@@ -23,7 +23,7 @@ jobs:
           git config --global user.name "$USER"
           git config --global user.email "$EMAIL"
       - name: Checkout roam-depot repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: ${{ env.FORK }}/roam-depot
           ref: main
