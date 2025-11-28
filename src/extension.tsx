@@ -20,7 +20,9 @@ import {
 } from "./config";
 import { Omnibar } from "@blueprintjs/select";
 import { NodeGroup } from "react-move";
-import { RoamExtensionAPI, Tab } from "./type";
+import type { Tab } from "./type";
+import type { RoamExtensionAPI } from "roam-types";
+import { renderApp } from "./stack";
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
@@ -57,7 +59,7 @@ const _mount = async () => {
     forceUpdate();
   }
   saveTabsToSettings(tabs, currentTab);
-
+  renderApp(tabs, currentTab);
   // scroll to active button
   setTimeout(() => {
     const rbm = document.querySelector(".rm-article-wrapper");
@@ -152,7 +154,7 @@ const setTabs = (newTab: Tab) => {
   // console.log("---change: ", JSON.stringify(tabs))
   tabs = change(tabs);
 };
-const removeTab = (uid: string) => {
+export const removeTab = (uid: string) => {
   const tab = tabs.find((tab) => tab.uid === uid);
   if (!tab) {
     return;
@@ -694,7 +696,7 @@ function useEvent(handler: Function) {
     handlerRef.current = handler;
   });
 
-  return useCallback((...args) => {
+  return useCallback((...args: any[]) => {
     // In a real implementation, this would throw if called during render
     const fn = handlerRef.current;
     return fn(...args);

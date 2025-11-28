@@ -1,41 +1,56 @@
 .roam-tabs {
-    height: 30px;
-    min-height: 30px;
-    z-index: 1;
+  height: 30px;
+  min-height: 30px;
+  z-index: 10;
 
-    button.roam-tab {
-        margin-right: 4px;
+  button.roam-tab {
+    margin-right: 4px;
 
-        .bp3-button-text {
-            display: inline-flex;
-        }
-        transition-delay: 1s;
-        transition-property: max-width;
-        &[data-dragging="true"] {
-            // margin: 0 .5rem;
-        }
-        &.over {
-            // border-style: dotted;
-            // background-color: red;
-        }
+    .bp3-button-text {
+      display: inline-flex;
+    }
+    transition-delay: 1s;
+    transition-property: max-width;
+  }
+
+  &-container {
+    background-color: white;
+    &::-webkit-scrollbar-thumb {
+      background-color: transparent;
+      height: 10px;
     }
 
-    &-container {
-        &::-webkit-scrollbar-thumb {
-            background-color: transparent;
-            height: 10px;
-        }
-
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 5px;
-        &:hover::-webkit-scrollbar-thumb {
-            background-color: #bfbfbf;
-        }
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 5px;
+    &:hover::-webkit-scrollbar-thumb {
+      background-color: #bfbfbf;
     }
+  }
 }
 
-
 .roam-body .roam-app .roam-body-main {
-    flex: 0 0 calc(100% - 75px)
+  flex: 0 0 calc(100% - 75px);
+}
+
+.roam-stack {
+  &-container {
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    position: absolute;
+    background-color: white;
+    z-index: 11;
+  }
+  &-card {
+    flex-shrink: 0;
+    height: 100%;
+    position: sticky;
+    border-right: 1px solid #ddd;
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12); // 加深阴影方便观察对齐
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    background-color: white;
+  }
 }

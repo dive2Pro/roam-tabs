@@ -1,6 +1,8 @@
 import React from "react";
 import { ClientConfig } from "./ClientConfig";
-import type { CacheTab, Tab, RoamExtensionAPI } from "./type";
+import type { CacheTab, Tab } from "./type";
+import { RoamExtensionAPI } from "roam-types";
+import { renderApp } from "./stack";
 
 const Keys = {
   Auto: "Auto",
@@ -9,6 +11,7 @@ const Keys = {
   Client: "Client",
   ClientConfig: "ClientConfig",
   ClientCanSaveConfig: "ClientCanSaveConfig",
+  TabMode: "TabMode",
 };
 
 let API: RoamExtensionAPI;
@@ -28,6 +31,24 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
           },
         },
       },
+      {
+        id: Keys.TabMode,
+        name: "Tab Display Mode",
+        description:
+          "Choose how tabs are displayed: Horizontal (default) or Stack Mode (pages open to the right, horizontal scrolling)",
+        action: {
+          type: "select",
+          items: ["horizontal", "stack"],
+          onChange: (evt: string) => {
+            console.log("evt", evt);
+            API.settings.set(Keys.TabMode, evt);
+            renderApp(
+              getTabsForClient()?.tabs || [],
+              getTabsForClient()?.activeTab || undefined
+            );
+          },
+        },
+      },
       ...(isAdmin()
         ? [
             {
@@ -35,7 +56,7 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
               name: "Initial Tabs for Visitors",
               description: "Set initial tabs for collaborators and visitors",
               action: {
-                type: "reactComponent",
+                type: "reactComponent" as const,
                 component: ({}) => {
                   return (
                     <ClientConfig
@@ -66,7 +87,7 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
               description:
                 "When enabled, allows collaborators to save their personal tab state to browser local storage, which will be restored after page refresh",
               action: {
-                type: "switch",
+                type: "switch" as const,
                 onChange: (evt: { target: { checked: boolean } }) => {
                   API.settings.set(
                     Keys.ClientCanSaveConfig,
@@ -103,6 +124,12 @@ export function isAutoOpenNewTab(): boolean {
 
 export function isClientCanSaveConfig(): boolean {
   return !!API.settings.get(Keys.ClientCanSaveConfig);
+}
+
+export function getTabMode(): "horizontal" | "andy" {
+  return (
+    (API.settings.get(Keys.TabMode) as "horizontal" | "andy") || "horizontal"
+  );
 }
 
 /**
@@ -186,4 +213,8 @@ export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
       console.error("Failed to save tabs to localStorage:", error);
     }
   }
+}
+
+export function isStackMode(): boolean {
+  return API.settings.get(Keys.TabMode) === "stack";
 }
