@@ -24,7 +24,8 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
       {
         id: Keys.Auto,
         name: "Auto Mode",
-        description: "Automatically open links in new tabs",
+        description:
+          "Automatically open links in new tabs, only works in horizontal mode",
         action: {
           type: "switch",
           onChange: (evt: { target: { checked: boolean } }) => {
@@ -106,13 +107,14 @@ const renderAppForConfig = () => {
     toggleAppClass();
     initExtension(API);
     renderStackApp();
-  }, 100);
+  }, 10);
 };
+
 const renderStackApp = () => {
   renderApp(
     API.settings.get(Keys.TabMode),
-    getTabsForClient()?.tabs || [],
-    getTabsForClient()?.activeTab || undefined
+    loadTabsFromSettings()?.tabs || [],
+    loadTabsFromSettings()?.activeTab || undefined
   );
 };
 const toggleAppClass = () => {
@@ -212,6 +214,20 @@ function saveTabsForClientToSettings(tabs: Tab[]): void {
   API.settings.set(Keys.ClientConfig, {
     tabs,
   });
+}
+
+export function saveAndRefreshTabs(tabs: Tab[], activeTab?: Tab): void {
+  saveTabsToSettings(tabs, activeTab);
+  setTimeout(() => {
+    renderStackApp();
+  });
+}
+
+export function removeTab(tabUid: string): void {
+  const tabs = loadTabsFromSettings()?.tabs || [];
+  const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
+  saveTabsToSettings(newTabs);
+  renderStackApp();
 }
 export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
   // 非用户，不保存

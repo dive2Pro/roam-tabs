@@ -746,6 +746,7 @@ export function initExtension(extensionAPI: RoamExtensionAPI) {
     if (root) {
       root.unmount();
     }
+    console.log("unmount stack mode");
     if (el) {
       el.remove();
     }

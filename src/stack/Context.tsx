@@ -8,6 +8,12 @@ import React, {
 } from "react";
 import { Tab } from "../type";
 import { Button } from "@blueprintjs/core";
+import {
+  isAutoOpenNewTab,
+  removeTab,
+  saveAndRefreshTabs,
+  saveTabsToSettings,
+} from "../config";
 // import { removeTab } from "../extension";
 
 /* ===========================================================================
@@ -161,7 +167,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
       {/* 垂直脊 */}
       <div
         style={{
-          position: "absolute",
+          //   position: "absolute",
           left: 0,
           top: 0,
           bottom: 0,
@@ -179,7 +185,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         <Button
           icon="cross"
           minimal
-          //   onClick={() => removeTab(item.id)}
+          onClick={() => removeTab(item.id)}
         ></Button>
         {item.title}
       </div>
@@ -188,7 +194,9 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
       <div
         style={{
           padding: "20px",
-          paddingLeft: `${CONSTANTS.SPINE_WIDTH + 30}px`,
+          paddingLeft: `40px`,
+          overflow: "auto",
+          width: CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH,
         }}
         ref={contentRef}
       ></div>
@@ -212,7 +220,6 @@ const Layout = () => {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "#333",
       }}
     >
       {/* <header
@@ -253,6 +260,72 @@ const Layout = () => {
 };
 
 export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
+  useEffect(() => {
+    const onRouteChange = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const pageOrBlockUid =
+        await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+      let pageData = (await window.roamAlphaAPI.data.async.q(
+        `[:find [?e ?t]  :where [?b :block/uid "${pageOrBlockUid}"] [?b :block/page ?p]
+         [?p :block/uid ?e]
+         [?p :node/title ?t]
+        ]`
+      )) as unknown as null | [string, string];
+      let blockUid = pageOrBlockUid;
+      if (!pageData) {
+        const title = (await window.roamAlphaAPI.data.async.q(
+          `[:find ?t . :where [?b :block/uid "${pageOrBlockUid}"] [?b :node/title ?t]
+          ]`
+        )) as unknown as string;
+        pageData = [pageOrBlockUid, title];
+      }
+      console.log("pageOrBlockUid", pageOrBlockUid, pageData);
+
+      const [pageUid, title] = pageData;
+      if (props.tabs.find((tab) => tab.uid === pageUid)) {
+        const index = props.tabs.findIndex((tab) => tab.uid === pageUid);
+        props.tabs[index].blockUid = blockUid;
+        saveAndRefreshTabs(props.tabs, props.tabs[index]);
+        return;
+      }
+      //   if (isAutoOpenNewTab()) {
+      const newTab = { uid: pageUid, title, blockUid, pin: false };
+      const tabs = [...props.tabs, newTab];
+      console.log("newTab@@@", newTab);
+      saveAndRefreshTabs(tabs, newTab);
+      //   } else {
+      //     const currentIndex = props.tabs.findIndex(
+      //       (tab) => tab.uid === props.currentTab?.uid
+      //     );
+      //     const exitsIndex = props.tabs.findIndex((tab) => tab.uid === pageUid);
+      //     let newTab =
+      //       exitsIndex > -1
+      //         ? {
+      //             ...props.tabs[exitsIndex],
+      //             blockUid,
+      //           }
+      //         : {
+      //             blockUid,
+      //             title,
+      //             uid: pageUid,
+      //             pin: false,
+      //           };
+      //     const tabs = [...props.tabs];
+      //     if (currentIndex !== -1) {
+      //       tabs[currentIndex] = newTab;
+      //     } else {
+      //       tabs.push(newTab);
+      //     }
+      //     console.log("tabs!!!", tabs);
+      //     saveAndRefreshTabs(tabs, newTab);
+      //   }
+    };
+    window.addEventListener("hashchange", onRouteChange);
+
+    return () => {
+      window.removeEventListener("hashchange", onRouteChange);
+    };
+  }, [props.tabs, props.currentTab]);
   return (
     <StackProvider
       tabs={props.tabs.map((tab) => ({ id: tab.uid, title: tab.title }))}
