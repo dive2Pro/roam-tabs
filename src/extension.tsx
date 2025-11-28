@@ -1,5 +1,5 @@
-import React, { Component, PureComponent, useReducer } from "react";
-import ReactDOM from "react-dom";
+import React, { Component, useReducer } from "react";
+import ReactDOM from "react-dom/client";
 import "./style.less";
 const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
 import {
@@ -7,22 +7,20 @@ import {
   Icon,
   MenuItem,
   Menu,
-  ContextMenuTarget,
   ContextMenu,
   MenuDivider,
-  Tooltip,
 } from "@blueprintjs/core";
 import { copyToClipboard, extension_helper } from "./helper";
 import {
   isAutoOpenNewTab,
   loadTabsFromSettings,
   saveTabsToSettings,
+  isStackMode,
 } from "./config";
 import { Omnibar } from "@blueprintjs/select";
 import { NodeGroup } from "react-move";
 import type { Tab } from "./type";
 import type { RoamExtensionAPI } from "roam-types";
-import { renderApp } from "./stack";
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
@@ -43,23 +41,24 @@ function debounce(fn: Function, ms = 500) {
     }, ms);
   };
 }
-
+let root: ReactDOM.Root | null = null;
+let el: HTMLElement | null = null;
 const _mount = async () => {
-  // console.log(" mounting :::");
+  console.log(" mounting :::", tabs, currentTab);
   const roamMain = document.querySelector(".roam-main");
-  let el = roamMain.querySelector("." + clazz);
+  el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
   const articleWrapper = document.querySelector(".rm-article-wrapper");
   if (!el) {
     el = document.createElement("div");
     el.className = clazz;
     roamMain.insertBefore(el, roamBodyMain);
-    ReactDOM.render(<App />, el);
+    root = ReactDOM.createRoot(el);
+    root.render(<App />);
   } else {
     forceUpdate();
   }
   saveTabsToSettings(tabs, currentTab);
-  renderApp(tabs, currentTab);
   // scroll to active button
   setTimeout(() => {
     const rbm = document.querySelector(".rm-article-wrapper");
@@ -741,7 +740,21 @@ let API: RoamExtensionAPI;
 
 export function initExtension(extensionAPI: RoamExtensionAPI) {
   API = extensionAPI;
+
+  // 检查是否是 stack mode
+  if (isStackMode()) {
+    if (root) {
+      root.unmount();
+    }
+    if (el) {
+      el.remove();
+    }
+    return;
+  }
+
+  // 如果是 stack mode，正常初始化
   const cacheConfig = loadTabsFromSettings();
+  console.log("cacheConfig", cacheConfig);
   if (cacheConfig) {
     setCurrentTab(cacheConfig.activeTab);
     tabs = cacheConfig.tabs;

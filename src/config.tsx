@@ -3,6 +3,7 @@ import { ClientConfig } from "./ClientConfig";
 import type { CacheTab, Tab } from "./type";
 import { RoamExtensionAPI } from "roam-types";
 import { renderApp } from "./stack";
+import { initExtension } from "./extension";
 
 const Keys = {
   Auto: "Auto",
@@ -40,12 +41,9 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
           type: "select",
           items: ["horizontal", "stack"],
           onChange: (evt: string) => {
-            console.log("evt", evt);
+            console.log("evt 222", evt);
             API.settings.set(Keys.TabMode, evt);
-            renderApp(
-              getTabsForClient()?.tabs || [],
-              getTabsForClient()?.activeTab || undefined
-            );
+            renderAppForConfig();
           },
         },
       },
@@ -100,8 +98,34 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
         : []),
     ],
   });
+  renderAppForConfig();
 }
 
+const renderAppForConfig = () => {
+  setTimeout(() => {
+    toggleAppClass();
+    initExtension(API);
+    renderStackApp();
+  }, 100);
+};
+const renderStackApp = () => {
+  renderApp(
+    API.settings.get(Keys.TabMode),
+    getTabsForClient()?.tabs || [],
+    getTabsForClient()?.activeTab || undefined
+  );
+};
+const toggleAppClass = () => {
+  const app = document.querySelector(".roam-app");
+  if (!app) {
+    return;
+  }
+  if (isStackMode()) {
+    app.classList.add("roam-app-stack");
+  } else {
+    app.classList.remove("roam-app-stack");
+  }
+};
 const isAdmin = (): boolean => {
   return (window.roamAlphaAPI as any).user?.isAdmin() ?? false;
 };

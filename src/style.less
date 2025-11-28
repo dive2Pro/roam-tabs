@@ -1,3 +1,11 @@
+.roam-app-stack {
+    .roam-tabs {
+        display: none;
+    }
+    .roam-stack-container {
+        display: block;
+    }
+}
 .roam-tabs {
   height: 30px;
   min-height: 30px;
@@ -36,12 +44,13 @@
 .roam-stack {
   &-container {
     left: 0;
-    top: 0;
+    top: 44px;
     right: 0;
     bottom: 0;
     position: absolute;
     background-color: white;
     z-index: 11;
+    display: none;
   }
   &-card {
     flex-shrink: 0;

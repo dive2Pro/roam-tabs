@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { Tab } from "../type";
 import { Button } from "@blueprintjs/core";
-import { removeTab } from "../extension";
+// import { removeTab } from "../extension";
 
 /* ===========================================================================
  * 1. 类型定义
@@ -145,6 +145,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
       uid: item.id,
     });
   }, [item.id]);
+
   return (
     <div
       onClick={() => isObstructed && focusPage(index)}
@@ -178,7 +179,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         <Button
           icon="cross"
           minimal
-          onClick={() => removeTab(item.id)}
+          //   onClick={() => removeTab(item.id)}
         ></Button>
         {item.title}
       </div>
@@ -190,44 +191,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
           paddingLeft: `${CONSTANTS.SPINE_WIDTH + 30}px`,
         }}
         ref={contentRef}
-      >
-        <h2 style={{ marginTop: 0 }}>{item.title}</h2>
-        <p>此页面 Index: {index}</p>
-        <p style={{ fontSize: "14px", color: "#666" }}>
-          由于精确计算，当你点击跳转到这里时， 左边的脊宽度总和正好是{" "}
-          {index * CONSTANTS.SPINE_WIDTH}px， 内容区域会紧接着显示。
-        </p>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "10px",
-            marginTop: "30px",
-          }}
-        >
-          {/* 生成跳转所有页面的按钮 */}
-          {DATA.map((d) => (
-            <button
-              key={d.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                openPage(d.id);
-              }}
-              style={{
-                padding: "8px 12px",
-                cursor: "pointer",
-                background: d.id === item.id ? "#333" : "#eee", // 高亮自己
-                color: d.id === item.id ? "#fff" : "#333",
-                border: "none",
-                borderRadius: "4px",
-              }}
-            >
-              Go {d.id}
-            </button>
-          ))}
-        </div>
-      </div>
+      ></div>
     </div>
   );
 };
@@ -241,7 +205,7 @@ const Layout = () => {
     throw new Error("Layout must be used within StackProvider");
   }
   const { stack, containerRef } = context;
-
+  console.log("stack", stack);
   return (
     <div
       style={{
@@ -292,7 +256,7 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
   return (
     <StackProvider
       tabs={props.tabs.map((tab) => ({ id: tab.uid, title: tab.title }))}
-      active={props.currentTab.uid}
+      active={props.currentTab?.uid}
     >
       <Layout />
     </StackProvider>
