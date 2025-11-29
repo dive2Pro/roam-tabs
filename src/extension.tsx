@@ -43,7 +43,6 @@ function debounce(fn: Function, ms = 500) {
 let root: ReactDOM.Root | null = null;
 let el: HTMLElement | null = null;
 const _mount = async () => {
-  console.log(" mounting :::", tabs, currentTab);
   const roamMain = document.querySelector(".roam-main");
   el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
@@ -132,7 +131,6 @@ const setTabs = (newTab: Tab) => {
     if (prev.length === 0) {
       return [newTab];
     }
-    console.log(`set Tabs = `, index, JSON.stringify(prev), newTab);
 
     if (index !== -1) {
       prev[index] = newTab;
@@ -207,7 +205,6 @@ const setCurrentTab = (v?: Tab) => {
   } else {
     currentTab = v;
   }
-  console.log(tabs, currentTab, " setCurrentTab");
   // 如果发现 v.blockUid 已经不在该页面下, 改为打开 page uid
   if (!v) return;
   const targetUid = getUidExitsInPage(v);
@@ -261,7 +258,6 @@ function App() {
       const rbm = document.querySelector(".rm-article-wrapper");
 
       scrollTop$ = rbm.scrollTop;
-      console.log("onScroll ---, ", routeChanging);
       if (!routeChanging) recordPosition();
     };
     const rbm = document.querySelector(".rm-article-wrapper");
@@ -281,7 +277,6 @@ function App() {
     });
     const index = location.href.indexOf("/page/");
     const uid = e.newURL.split("/").pop();
-    console.log("change---Route", scrollTop$, `index = ${index}`, uid);
 
     if (index === -1) {
       setCurrentTab();
@@ -291,15 +286,6 @@ function App() {
     }
     const pageUid = getPageUidByUid(uid);
     const title = getPageTitleByUid(pageUid);
-    console.log(
-      "change: true ",
-      pageUid,
-      title,
-      uid,
-      tabs,
-      `current Tab: `,
-      currentTab
-    );
     onChange(pageUid, title, uid);
     routeChanging = false;
   });
@@ -600,7 +586,7 @@ export function initExtension(extensionAPI: RoamExtensionAPI) {
     if (root) {
       root.unmount();
     }
-    console.log("unmount stack mode");
+
     if (el) {
       el.remove();
     }
@@ -609,7 +595,6 @@ export function initExtension(extensionAPI: RoamExtensionAPI) {
 
   // 如果是 stack mode，正常初始化
   const cacheConfig = loadTabsFromSettings();
-  console.log("cacheConfig", cacheConfig);
   if (cacheConfig) {
     setCurrentTab(cacheConfig.activeTab);
     tabs = cacheConfig.tabs;
@@ -630,13 +615,10 @@ function openInSidebar(uid: string) {
 }
 function recordPosition() {
   if (currentTab && currentTab.scrollTop !== scrollTop$) {
-    console.log(currentTab, "----before record----", tabs);
     currentTab.scrollTop = scrollTop$;
     const tab = tabs.find((tab) => tab.uid === currentTab.uid);
     if (tab) tab.scrollTop = scrollTop$;
   }
-
-  console.log(currentTab, "----after record----", tabs);
 }
 
 const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
@@ -664,7 +646,6 @@ function toggleTabPin(tab: Tab) {
   }
   sortTabByPin();
   mount();
-  console.log(` toggle pin: `, currentTab);
 }
 function getUidExitsInPage(v: Tab) {
   return !!window.roamAlphaAPI.q(`

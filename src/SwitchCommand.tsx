@@ -95,7 +95,6 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
         );
       }}
       onItemSelect={(item) => {
-        console.log(item, " select ");
         onTabSelect(item);
         setState({ open: false });
       }}

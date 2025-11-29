@@ -15,7 +15,6 @@ export const extension_helper = {
 export function copyToClipboard(text: string) {
   try {
     navigator.clipboard.writeText(text).then(() => {
-      console.log("Text copied to clipboard");
     });
   } catch (e) {
     oldCopyToClipboard(text);
@@ -27,7 +26,6 @@ export function copyToClipboard(text: string) {
     textarea.select();
     document.execCommand("copy");
     document.body.removeChild(textarea);
-    console.log("Text copied to clipboard");
   }
 }
 export const appendToTopbar = (name: string) => {

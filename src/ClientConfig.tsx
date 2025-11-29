@@ -26,7 +26,6 @@ export function ClientConfig({
   const [selectedPages, setSelectedPages] = useState<PageOption[]>(selected);
   const [allPages, setAllPages] = useState<PageOption[]>([]);
   const [filteredPages, setFilteredPages] = useState<PageOption[]>([]);
-  console.log({ selected });
   useEffect(() => {
     // @ts-ignore
     window.roamAlphaAPI.data.async.fast
@@ -102,7 +101,7 @@ export function ClientConfig({
     );
     setSelectedPages(newSelectedPages);
     onSave(newSelectedPages);
-    debugger
+    debugger;
   };
 
   const handleClear = () => {
@@ -110,7 +109,7 @@ export function ClientConfig({
   };
 
   return (
-    <section  className="bp3-dark">
+    <section className="bp3-dark">
       <MultiSelect<PageOption>
         items={filteredPages}
         selectedItems={selectedPages}

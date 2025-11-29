@@ -42,7 +42,6 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
           type: "select",
           items: ["horizontal", "stack"],
           onChange: (evt: string) => {
-            console.log("evt 222", evt);
             API.settings.set(Keys.TabMode, evt);
             renderAppForConfig();
           },
@@ -231,7 +230,6 @@ export function removeTab(tabUid: string): void {
   const cacheTab = loadTabsFromSettings();
   const tabs = cacheTab?.tabs || [];
   const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
-  console.log("removeTab", tabUid, newTabs);
   if (cacheTab?.activeTab?.uid !== tabUid) {
     saveTabsToSettings(newTabs);
     renderStackApp();

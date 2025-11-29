@@ -82,40 +82,70 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
   //   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const focusedIndex = activeIndex;
   /**
-   * 核心算法：精确滚动到指定索引
+   * 核心算法：智能滚动到指定索引
    * 目标：让该页面的左边缘，刚好紧贴着前面所有页面的"脊"
+   * 优化：如果页面已经在视口内完美展示且未被遮挡，则跳过滚动
    */
   const scrollToPageIndex = (index: number) => {
-    if (containerRef.current) {
-      const el = containerRef.current;
+    const container = containerRef.current;
+    if (!container) return;
 
-      // 公式： 目标滚动位置 = 索引 * (页面宽度 - 脊宽度)
-      // 解释： 既然每个页面在折叠时都贡献了 (PageWidth - SpineWidth) 的位移，
-      //       要看第 N 页，就需要把前面 N-1 页的这部分位移都滚过去。
-      const targetScrollLeft = index * FOLD_OFFSET;
+    // 智能判断：如果页面已经在视口内完美展示，则跳过滚动
+    const pageNode = container.children[index] as HTMLElement | undefined;
+    if (pageNode) {
+      const conRect = container.getBoundingClientRect();
+      const pageRect = pageNode.getBoundingClientRect();
 
-      el.scrollTo({
-        left: targetScrollLeft,
-        behavior: "smooth",
-      });
+      // 判断可见性 (左右都在视口内，允许 5px 的容差)
+      const isVisibleInViewport =
+        pageRect.left >= conRect.left - 5 &&
+        pageRect.right <= conRect.right + 5;
 
-      // 等待滚动完成后触发聚焦动画
-      const triggerFocusAnimation = () => {
-        // setFocusedIndex(index);
-        // 聚焦状态保持 2.5 秒，让用户看到常驻的 box-shadow 和闪动效果
-        setTimeout(() => {
-          //   setFocusedIndex(null);
-        }, 500);
-      };
-
-      // 使用 scrollend 事件（如果支持）或 fallback 到 setTimeout
-      if ("onscrollend" in el) {
-        el.addEventListener("scrollend", triggerFocusAnimation, { once: true });
-      } else {
-        // Fallback: 估算滚动时间（smooth 滚动通常需要 300-500ms）
-        const estimatedScrollTime = 20;
-        setTimeout(triggerFocusAnimation, estimatedScrollTime);
+      // 判断遮挡 (下一个页面的左边缘是否压在当前页面的右边缘内)
+      let isCovered = false;
+      const nextNode = container.children[index + 1] as HTMLElement | undefined;
+      if (nextNode) {
+        const nextRect = nextNode.getBoundingClientRect();
+        // 如果重叠超过 10px 视为遮挡
+        if (nextRect.left < pageRect.right - 10) {
+          isCovered = true;
+        }
       }
+
+      if (isVisibleInViewport && !isCovered) {
+        // 页面已经完美展示，跳过滚动
+        return;
+      }
+    }
+
+    // 公式： 目标滚动位置 = 索引 * (页面宽度 - 脊宽度)
+    // 解释： 既然每个页面在折叠时都贡献了 (PageWidth - SpineWidth) 的位移，
+    //       要看第 N 页，就需要把前面 N-1 页的这部分位移都滚过去。
+    const targetScrollLeft = index * FOLD_OFFSET;
+
+    container.scrollTo({
+      left: targetScrollLeft,
+      behavior: "smooth",
+    });
+
+    // 等待滚动完成后触发聚焦动画
+    const triggerFocusAnimation = () => {
+      // setFocusedIndex(index);
+      // 聚焦状态保持 2.5 秒，让用户看到常驻的 box-shadow 和闪动效果
+      setTimeout(() => {
+        //   setFocusedIndex(null);
+      }, 500);
+    };
+
+    // 使用 scrollend 事件（如果支持）或 fallback 到 setTimeout
+    if ("onscrollend" in container) {
+      container.addEventListener("scrollend", triggerFocusAnimation, {
+        once: true,
+      });
+    } else {
+      // Fallback: 估算滚动时间（smooth 滚动通常需要 300-500ms）
+      const estimatedScrollTime = 20;
+      setTimeout(triggerFocusAnimation, estimatedScrollTime);
     }
   };
 
@@ -222,7 +252,6 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
   const { focusPage, focusedIndex } = context;
   const isObstructed = index < total - 1;
   const isFocused = focusedIndex === index;
-  console.log("isFocused", { index, focusedIndex, isFocused });
 
   const contentRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -494,7 +523,6 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
         )) as unknown as string;
         pageData = [pageOrBlockUid, title];
       }
-      console.log("pageOrBlockUid", pageOrBlockUid, pageData);
 
       const [pageUid, title] = pageData;
       if (props.tabs.find((tab) => tab.uid === pageUid)) {
@@ -506,7 +534,7 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
       //   if (isAutoOpenNewTab()) {
       const newTab = { uid: pageUid, title, blockUid, pin: false };
       const tabs = [...props.tabs, newTab];
-      console.log("newTab@@@", newTab);
+
       saveAndRefreshTabs(tabs, newTab);
       //   } else {
       //     const currentIndex = props.tabs.findIndex(
