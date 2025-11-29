@@ -224,18 +224,26 @@ export function saveAndRefreshTabs(tabs: Tab[], activeTab?: Tab): void {
 }
 
 export function removeTab(tabUid: string): void {
-  const tabs = loadTabsFromSettings()?.tabs || [];
+  const cacheTab = loadTabsFromSettings();
+  const tabs = cacheTab?.tabs || [];
   const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
-  if (newTabs.length) {
-    // window.roamAlphaAPI.ui.mainWindow.openBlock({
-    //   block: {
-    //     uid: newTabs[newTabs.length - 1].blockUid,
-    //   },
-    // });
-  }
-  saveTabsToSettings(newTabs, newTabs[newTabs.length - 1]);
 
-  renderStackApp();
+  if (cacheTab?.activeTab?.uid !== tabUid) {
+    saveTabsToSettings(newTabs);
+    renderStackApp();
+    return;
+  }
+
+  if (newTabs.length) {
+    saveTabsToSettings(newTabs, newTabs[newTabs.length - 1]);
+    renderStackApp();
+
+    window.roamAlphaAPI.ui.mainWindow.openBlock({
+      block: {
+        uid: newTabs[newTabs.length - 1].blockUid,
+      },
+    });
+  }
 }
 export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
   // 非用户，不保存
