@@ -166,10 +166,12 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
   const isObstructed = index < total - 1;
   const contentRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    window.roamAlphaAPI.ui.components.renderPage({
-      el: contentRef.current,
-      uid: item.id,
-    });
+    setTimeout(() => {
+      window.roamAlphaAPI.ui.components.renderPage({
+        el: contentRef.current,
+        uid: item.id,
+      });
+    }, 150);
   }, [item.id]);
 
   // --- 1. 基础折叠点 ---
