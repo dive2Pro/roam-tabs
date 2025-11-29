@@ -52,6 +52,34 @@ You have the option to pin tabs to keep them in order at the beginning and preve
 
 https://github.com/dive2Pro/roam-tabs/assets/23192045/806e9f37-076c-4f2c-bf34-1d1e0c0d0fd8
 
+## Stack Mode
+
+Stack Mode is an alternative display mode for tabs that provides a unique visual experience. Instead of the traditional horizontal tab bar, pages are displayed in a stacked layout with horizontal scrolling.
+
+### Features
+
+- **Stacked Layout**: Pages are displayed side-by-side in a horizontal scrollable container, with each page showing a vertical spine (edge) that displays the page title
+- **Visual Stacking**: Pages overlap each other, creating a visual stack effect where you can see multiple pages at once
+- **Spine Navigation**: Click on the vertical spine (edge) of any page to focus and scroll to that page
+- **Horizontal Scrolling**: Scroll horizontally to navigate through your open tabs
+- **Page Width Configuration**: Customize the width of each page in Stack Mode (default: 650px) through the extension settings
+
+### How to Enable Stack Mode
+
+1. Go to Extension Settings
+2. Find "Tab Display Mode" option
+3. Select "stack" from the dropdown
+4. Alternatively, use the Command Palette and search for "Tabs: Change to Stack Mode"
+
+### Using Stack Mode
+
+- **Navigate**: Scroll horizontally or click on a page's spine to focus on it
+- **Close Tabs**: Click the close button (×) on the spine of any page
+- **Switch Pages**: Click on the spine or content area of a page to make it active
+- **Scroll Indicator**: A shadow indicator appears on the right edge when there are more pages to scroll to
+
+Stack Mode is particularly useful when you want to see multiple pages at once and prefer a more visual, spatial way of managing your tabs.
+
 ## Settings (Admin Only)
 
 ### Initial Tabs for Visitors
