@@ -55,7 +55,9 @@
     z-index: 11;
     display: none;
     &.roam-stack-container-hide {
-      display: none;
+      // display: none;
+      opacity: 0;
+      pointer-events: none;
     }
     .rm-streak {
       overflow: auto;
@@ -63,9 +65,17 @@
     .roam-stack-card-focused .roam-stack-card-spine {
       box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));
     }
+    &:has(.excalidraw-textEditorContainer) {
+      .roam-stack-scroll-indicator {
+        opacity: 0 !important;
+      }
+    }
   }
  
   &-card {
+    &:has(.excalidraw-textEditorContainer) {
+      z-index: 2;
+    }
     &-content {
       display: flex;
     }

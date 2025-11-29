@@ -13,6 +13,7 @@ let el: HTMLElement | null = null;
 let diagramObserver: MutationObserver | null = null;
 
 const onStackModeShow = () => {
+  console.log("onStackModeShow");
   const el = document.querySelector(`.${El}`);
   if (el) {
     el.classList.remove("roam-stack-container-hide");
@@ -20,6 +21,7 @@ const onStackModeShow = () => {
 };
 
 const onStackModeHide = () => {
+  console.log("onStackModeHide");
   const el = document.querySelector(`.${El}`);
   if (el) {
     el.classList.add("roam-stack-container-hide");
@@ -47,12 +49,32 @@ export const resetStackModeShowingState = async () => {
   }
 };
 
+// 观察到 ELParent 中存在 .rm-diagram.rm-diagram-full-screen  时 hide stack
+const observeFullScreenDiagram = (elParent: Element) => {
+  const targetClazz = ".excalidraw-textEditorContainer";
+  elParent.arrive(targetClazz, () => {
+    console.log("arrive", targetClazz);
+    onStackModeHide();
+  });
+  elParent.leave(targetClazz, () => {
+    console.log("leave", targetClazz);
+    // onStackModeShow();
+  });
+  extension_helper.on_uninstall(() => {
+    elParent.unbindArrive(targetClazz);
+    elParent.unbindLeave(targetClazz);
+  });
+};
+
+// observeFullScreenDiagram(document.querySelector(`.${ElParent}`));
+
 export const renderApp = (
   mode: string,
   extensionAPI: RoamExtensionAPI,
   tabs: Tab[],
   currentTab: Tab
 ) => {
+  console.log("renderApp", mode, tabs, currentTab, el, root);
   resetStackModeShowingState();
   if (mode !== "stack") {
     if (root) {

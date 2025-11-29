@@ -300,7 +300,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
           width: `${CONSTANTS.PAGE_WIDTH}px`,
           // 你的老朋友 sticky left
           left: `${index * CONSTANTS.SPINE_WIDTH}px`,
-          zIndex: index,
+          //   zIndex: index,
           cursor: isObstructed ? "pointer" : "default",
           // 左侧外阴影 (覆盖在前一页上的阴影)
           boxShadow: `
@@ -427,6 +427,7 @@ const Layout = () => {
       */}
       <div
         ref={hintRef}
+        className="roam-stack-scroll-indicator"
         style={{
           position: "absolute",
           right: 0,
