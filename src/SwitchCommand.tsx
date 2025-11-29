@@ -162,4 +162,3 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
     />
   );
 }
-

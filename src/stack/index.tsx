@@ -2,6 +2,10 @@ import ReactDOM from "react-dom/client";
 import type { Tab } from "../type";
 import { StackApp } from "./Context";
 import { extension_helper } from "../helper";
+import { ReactNode } from "react";
+import { SwitchCommand } from "../SwitchCommand";
+import { RoamExtensionAPI } from "roam-types";
+import { focusTab } from "../config";
 const ElParent = "roam-main";
 const El = "roam-stack-container";
 let root: ReactDOM.Root | null = null;
@@ -64,7 +68,12 @@ const observeFullScreenDiagram = (elParent: Element) => {
 
 // observeFullScreenDiagram(document.querySelector(`.${ElParent}`));
 
-export const renderApp = (mode: string, tabs: Tab[], currentTab: Tab) => {
+export const renderApp = (
+  mode: string,
+  extensionAPI: RoamExtensionAPI,
+  tabs: Tab[],
+  currentTab: Tab
+) => {
   console.log("renderApp", mode, tabs, currentTab, el, root);
   resetStackModeShowingState();
   if (mode !== "stack") {
@@ -89,7 +98,22 @@ export const renderApp = (mode: string, tabs: Tab[], currentTab: Tab) => {
   if (!root) {
     root = ReactDOM.createRoot(el);
   }
-  root.render(<StackApp tabs={tabs} currentTab={currentTab} />);
+  root.render(
+    <App>
+      <StackApp tabs={tabs} currentTab={currentTab} />
+      <SwitchCommand
+        tabs={tabs}
+        API={extensionAPI}
+        onTabSelect={(tab) => {
+          focusTab(tab.uid);
+        }}
+      />
+    </App>
+  );
 
   // Start observing for full-screen diagrams
 };
+
+function App(props: { children: ReactNode }) {
+  return <>{props.children}</>;
+}

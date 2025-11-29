@@ -119,7 +119,7 @@ const renderStackApp = () => {
     } else {
       // onStackModeHide();
     }
-    renderApp(API.settings.get(Keys.TabMode), tabs, activeTab);
+    renderApp(API.settings.get(Keys.TabMode), API, tabs, activeTab);
   });
 };
 
