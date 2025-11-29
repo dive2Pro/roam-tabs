@@ -49,40 +49,26 @@ export const resetStackModeShowingState = async () => {
   }
 };
 
-// 观察到 ELParent 中存在 .rm-diagram.rm-diagram-full-screen  时 hide stack
-const observeFullScreenDiagram = (elParent: Element) => {
-  const targetClazz = ".excalidraw-textEditorContainer";
-  elParent.arrive(targetClazz, () => {
-    console.log("arrive", targetClazz);
-    onStackModeHide();
-  });
-  elParent.leave(targetClazz, () => {
-    console.log("leave", targetClazz);
-    // onStackModeShow();
-  });
-  extension_helper.on_uninstall(() => {
-    elParent.unbindArrive(targetClazz);
-    elParent.unbindLeave(targetClazz);
-  });
-};
-
-// observeFullScreenDiagram(document.querySelector(`.${ElParent}`));
-
 export const renderApp = (
   mode: string,
   extensionAPI: RoamExtensionAPI,
   tabs: Tab[],
-  currentTab: Tab
+  currentTab: Tab,
+  pageWidth: number
 ) => {
-  console.log("renderApp", mode, tabs, currentTab, el, root);
+  console.log("renderApp", mode, tabs, currentTab, el, root, {
+    pageWidth,
+  });
   resetStackModeShowingState();
   if (mode !== "stack") {
     if (root) {
       root.unmount();
+      root = null;
     }
     if (el) {
       el.remove();
     }
+
     return;
   }
   const elParent = document.querySelector(`.${ElParent}`);
@@ -100,7 +86,7 @@ export const renderApp = (
   }
   root.render(
     <App>
-      <StackApp tabs={tabs} currentTab={currentTab} />
+      <StackApp pageWidth={pageWidth} tabs={tabs} currentTab={currentTab} />
       <SwitchCommand
         tabs={tabs}
         API={extensionAPI}

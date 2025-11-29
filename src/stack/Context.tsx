@@ -1,5 +1,4 @@
 import React, {
-  useState,
   useRef,
   createContext,
   useContext,
@@ -10,10 +9,9 @@ import { Tab } from "../type";
 import { Button } from "@blueprintjs/core";
 import {
   focusTab,
-  isAutoOpenNewTab,
+  getStackPageWidth,
   removeTab,
   saveAndRefreshTabs,
-  saveTabsToSettings,
 } from "../config";
 import { resetStackModeShowingState } from ".";
 // import { removeTab } from "../extension";
@@ -33,23 +31,27 @@ type StackContextType = {
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   focusedIndex: number | null;
   hintRef: React.RefObject<HTMLDivElement>;
+  //   宽度相关
+  pageWidth: number;
+  foldOffset: number;
+  titleTriggerOffset: number;
 };
 
 /* ===========================================================================
  * 2. 布局常量
  * =========================================================================== */
 const CONSTANTS = {
-  PAGE_WIDTH: 650, // 页面刚性宽度
   SPINE_WIDTH: 50, // 脊宽度
   TITLE_SHOW_AT: 100, // 🔥 核心配置：当未被遮盖范围剩 100px 时，标题才开始出现
 };
 
 // 单个页面完全折叠需要的位移量 (650 - 50 = 600)
-const FOLD_OFFSET = CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH;
+const FOLD_OFFSET = () => CONSTANTS.SPINE_WIDTH;
 
 // 标题触发的相对偏移量 (650 - 100 = 550)
-// 意味着：页面被盖住了 550px，只剩 100px 时，标题动画开始
-const TITLE_TRIGGER_OFFSET = CONSTANTS.PAGE_WIDTH - CONSTANTS.TITLE_SHOW_AT;
+// // 意味着：页面被盖住了 550px，只剩 100px 时，标题动画开始
+// const TITLE_TRIGGER_OFFSET = () =>
+//   CONSTANTS.PAGE_WIDTH() - CONSTANTS.TITLE_SHOW_AT;
 
 /* ===========================================================================
  * 3. 模拟数据
@@ -72,9 +74,15 @@ type StackProviderProps = {
   children: ReactNode;
   tabs: PageItem[];
   active: string;
+  pageWidth: number;
 };
 
-const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
+const StackProvider = ({
+  children,
+  tabs,
+  active,
+  pageWidth,
+}: StackProviderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const stack = tabs;
@@ -121,7 +129,7 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
     // 公式： 目标滚动位置 = 索引 * (页面宽度 - 脊宽度)
     // 解释： 既然每个页面在折叠时都贡献了 (PageWidth - SpineWidth) 的位移，
     //       要看第 N 页，就需要把前面 N-1 页的这部分位移都滚过去。
-    const targetScrollLeft = index * FOLD_OFFSET;
+    const targetScrollLeft = index * FOLD_OFFSET();
 
     container.scrollTo({
       left: targetScrollLeft,
@@ -228,6 +236,9 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
         handleScroll,
         focusedIndex,
         hintRef,
+        pageWidth: pageWidth,
+        foldOffset: pageWidth - CONSTANTS.SPINE_WIDTH,
+        titleTriggerOffset: pageWidth - CONSTANTS.TITLE_SHOW_AT,
       }}
     >
       {children}
@@ -249,7 +260,8 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
   if (!context) {
     throw new Error("PageCard must be used within StackProvider");
   }
-  const { focusPage, focusedIndex } = context;
+  const { focusPage, focusedIndex, pageWidth, foldOffset, titleTriggerOffset } =
+    context;
   const isObstructed = index < total - 1;
   const isFocused = focusedIndex === index;
 
@@ -265,17 +277,17 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
 
   // --- 1. 基础折叠点 ---
   // 页面 sticky 吸附的时刻
-  const foldStart = index * FOLD_OFFSET;
+  const foldStart = index * foldOffset;
 
   // --- 2. 标题触发点 (关键修改) ---
   // foldStart 是页面刚刚 sticky 住的时刻 (此时可见宽度 = 650px)
   // 我们加上 TITLE_TRIGGER_OFFSET (550px)，表示右边页面已经盖过来 550px 了
   // 此时可见宽度 = 100px。从这一刻开始，标题才允许出现。
-  const titleTriggerPoint = foldStart + TITLE_TRIGGER_OFFSET;
+  const titleTriggerPoint = foldStart + titleTriggerOffset;
 
   // --- 3. 阴影触发点 ---
   // 当我(index)开始覆盖前一页(index-1)时
-  const overlapStart = (index - 1) * FOLD_OFFSET;
+  const overlapStart = (index - 1) * FOLD_OFFSET();
 
   return (
     <div
@@ -297,7 +309,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
             index === 0
               ? "0"
               : `clamp(0, (var(--scroll-x) - var(--overlap-start)) / 30, 1)`,
-          width: `${CONSTANTS.PAGE_WIDTH}px`,
+          width: `${pageWidth}px`,
           // 你的老朋友 sticky left
           left: `${index * CONSTANTS.SPINE_WIDTH}px`,
           //   zIndex: index,
@@ -382,7 +394,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
             padding: "20px",
             paddingLeft: `40px`,
             overflow: "auto",
-            width: CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH,
+            width: pageWidth - CONSTANTS.SPINE_WIDTH,
           }}
           ref={contentRef}
         ></div>
@@ -500,7 +512,11 @@ const Layout = () => {
   );
 };
 
-export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
+export const StackApp = (props: {
+  tabs: Tab[];
+  currentTab: Tab;
+  pageWidth: number;
+}) => {
   useEffect(() => {
     const onRouteChange = async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -537,32 +553,6 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
       const tabs = [...props.tabs, newTab];
 
       saveAndRefreshTabs(tabs, newTab);
-      //   } else {
-      //     const currentIndex = props.tabs.findIndex(
-      //       (tab) => tab.uid === props.currentTab?.uid
-      //     );
-      //     const exitsIndex = props.tabs.findIndex((tab) => tab.uid === pageUid);
-      //     let newTab =
-      //       exitsIndex > -1
-      //         ? {
-      //             ...props.tabs[exitsIndex],
-      //             blockUid,
-      //           }
-      //         : {
-      //             blockUid,
-      //             title,
-      //             uid: pageUid,
-      //             pin: false,
-      //           };
-      //     const tabs = [...props.tabs];
-      //     if (currentIndex !== -1) {
-      //       tabs[currentIndex] = newTab;
-      //     } else {
-      //       tabs.push(newTab);
-      //     }
-      //     console.log("tabs!!!", tabs);
-      //     saveAndRefreshTabs(tabs, newTab);
-      //   }
     };
 
     window.addEventListener("hashchange", onRouteChange);
@@ -575,6 +565,7 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
     <StackProvider
       tabs={props.tabs.map((tab) => ({ id: tab.uid, title: tab.title }))}
       active={props.currentTab?.uid}
+      pageWidth={props.pageWidth}
     >
       <Layout />
     </StackProvider>

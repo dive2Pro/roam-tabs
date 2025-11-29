@@ -4,6 +4,7 @@ import type { CacheTab, Tab } from "./type";
 import { RoamExtensionAPI } from "roam-types";
 import { renderApp } from "./stack";
 import { initExtension } from "./extension";
+import { extension_helper } from "./helper";
 
 const Keys = {
   Auto: "Auto",
@@ -13,11 +14,36 @@ const Keys = {
   ClientConfig: "ClientConfig",
   ClientCanSaveConfig: "ClientCanSaveConfig",
   TabMode: "TabMode",
+  StackPageWidth: "StackPageWidth",
 };
 
 let API: RoamExtensionAPI;
 export function initConfig(extensionAPI: RoamExtensionAPI) {
   API = extensionAPI;
+  extensionAPI.ui.commandPalette.addCommand({
+    label: "Tabs: Change to Horizontal Mode",
+    callback: () => {
+      API.settings.set(Keys.TabMode, "horizontal");
+      renderAppForConfig();
+    },
+  });
+  extensionAPI.ui.commandPalette.addCommand({
+    label: "Tabs: Change to Stack Mode",
+    callback: () => {
+      API.settings.set(Keys.TabMode, "stack");
+      renderAppForConfig();
+    },
+  });
+  extension_helper.on_uninstall(() => {
+    extensionAPI.ui.commandPalette.removeCommand({
+      label: "Tabs: Change to Horizontal Mode",
+    });
+
+    extensionAPI.ui.commandPalette.removeCommand({
+      label: "Tabs: Change to Stack Mode",
+    });
+  });
+
   extensionAPI.settings.panel.create({
     tabTitle: "Tabs",
     settings: [
@@ -44,6 +70,24 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
           onChange: (evt: string) => {
             API.settings.set(Keys.TabMode, evt);
             renderAppForConfig();
+          },
+        },
+      },
+      {
+        id: Keys.StackPageWidth,
+        name: "Stack Page Width",
+        description: "Set the width of the stack page, default is 650, !",
+        action: {
+          type: "input",
+          placeholder: "650",
+          onChange: (evt: { target: { value: string } }) => {
+            const value = evt.target.value;
+            console.log("onChange", value, typeof value);
+
+            if (Number(value)) {
+              API.settings.set(Keys.StackPageWidth, Number(value));
+              renderAppForConfig();
+            }
           },
         },
       },
@@ -101,6 +145,14 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
   renderAppForConfig();
 }
 
+export function getStackPageWidth(): number {
+  if (!API) {
+    return 650;
+  }
+  console.log(API);
+  return (API.settings.get(Keys.StackPageWidth) as number) || 650;
+}
+
 const renderAppForConfig = () => {
   setTimeout(() => {
     toggleAppClass();
@@ -113,12 +165,14 @@ const renderStackApp = () => {
   setTimeout(() => {
     const tabs = loadTabsFromSettings()?.tabs || [];
     const activeTab = loadTabsFromSettings()?.activeTab || undefined;
-    if (tabs.length) {
-      // onStackModeShow();
-    } else {
-      // onStackModeHide();
-    }
-    renderApp(API.settings.get(Keys.TabMode), API, tabs, activeTab);
+
+    renderApp(
+      API.settings.get(Keys.TabMode),
+      API,
+      tabs,
+      activeTab,
+      getStackPageWidth()
+    );
   });
 };
 
