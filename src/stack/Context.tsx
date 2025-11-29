@@ -32,6 +32,7 @@ type StackContextType = {
   containerRef: React.RefObject<HTMLDivElement>;
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
   focusedIndex: number | null;
+  hintRef: React.RefObject<HTMLDivElement>;
 };
 
 /* ===========================================================================
@@ -75,6 +76,7 @@ type StackProviderProps = {
 
 const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null);
   const stack = tabs;
   const activeIndex = stack.findIndex((p) => p.id === active);
   //   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -122,14 +124,66 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
     scrollToPageIndex(index);
   };
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (containerRef.current) {
-      containerRef.current.style.setProperty(
-        "--scroll-x",
-        `${e.currentTarget.scrollLeft}`
-      );
+  // 🔥 核心：更新右侧滑动提示阴影 (不触发 React 渲染)
+  const updateHintUI = (max: number, current: number) => {
+    if (!hintRef.current) return;
+
+    const remaining = max - current;
+
+    // 如果剩余距离 > 10px，显示阴影提示；否则隐藏
+    if (remaining > 10) {
+      // 根据剩余距离计算阴影强度，距离越远阴影越明显
+      const shadowIntensity = Math.min(remaining / 200, 1); // 最大强度在 200px 时达到
+      hintRef.current.style.opacity = `${shadowIntensity}`;
+    } else {
+      hintRef.current.style.opacity = "0";
     }
   };
+
+  // --- A. 更新最大滚动距离 ---
+  const updateScrollMetrics = () => {
+    if (containerRef.current) {
+      const el = containerRef.current;
+      const max = el.scrollWidth - el.clientWidth;
+      const current = el.scrollLeft;
+
+      // 更新 CSS 变量用于样式计算
+      el.style.setProperty("--scroll-max", `${max}`);
+      el.style.setProperty("--scroll-x", `${current}`);
+
+      // 🔥 手动触发一次 UI 更新，确保初始状态正确
+      updateHintUI(max, current);
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (containerRef.current) {
+      const el = e.currentTarget;
+      const current = el.scrollLeft;
+      const max = el.scrollWidth - el.clientWidth;
+
+      // 1. 更新 CSS 变量 (用于页面内部阴影/标题等)
+      el.style.setProperty("--scroll-x", `${current}`);
+
+      // 2. 🔥 更新右侧滑动提示阴影
+      updateHintUI(max, current);
+    }
+  };
+
+  // 监听容器尺寸变化
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    updateScrollMetrics();
+    const observer = new ResizeObserver(updateScrollMetrics);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Stack 变化后更新
+  useEffect(() => {
+    setTimeout(updateScrollMetrics, 100);
+  }, [stack.length]);
 
   useEffect(() => {
     scrollToPageIndex(activeIndex);
@@ -137,7 +191,14 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
 
   return (
     <StackContext.Provider
-      value={{ stack, focusPage, containerRef, handleScroll, focusedIndex }}
+      value={{
+        stack,
+        focusPage,
+        containerRef,
+        handleScroll,
+        focusedIndex,
+        hintRef,
+      }}
     >
       {children}
     </StackContext.Provider>
@@ -309,13 +370,14 @@ const Layout = () => {
   if (!context) {
     throw new Error("Layout must be used within StackProvider");
   }
-  const { stack, containerRef, handleScroll } = context;
+  const { stack, containerRef, handleScroll, hintRef } = context;
   return (
     <div
       style={{
         height: "100vh",
         display: "flex",
         flexDirection: "column",
+        position: "relative",
       }}
     >
       {/* <header
@@ -330,6 +392,31 @@ const Layout = () => {
         点击任意按钮，目标页面会完美贴合在左侧堆叠区的右边。
       </header> */}
 
+      {/* 
+        🔥🔥 右侧滑动提示阴影效果
+        当还有内容可以向右滚动时，在右侧边缘显示渐变阴影提示
+      */}
+      <div
+        ref={hintRef}
+        style={{
+          position: "absolute",
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: "60px", // 阴影渐变宽度
+          zIndex: 100,
+          pointerEvents: "none", // 不阻挡点击
+
+          // 从右到左的渐变阴影效果
+          background:
+            "linear-gradient(to left, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.08) 50%, transparent 100%)",
+
+          // 动画属性 (由 JS 切换 opacity)
+          transition: "opacity 0.3s ease",
+          opacity: 0, // 默认隐藏
+        }}
+      />
+
       <div
         ref={containerRef}
         onScroll={handleScroll}
@@ -343,8 +430,10 @@ const Layout = () => {
             // 移除 paddingRight 以保证精确控制边界
             paddingRight: 0,
             "--scroll-x": "0",
+            "--scroll-max": "0",
           } as React.CSSProperties & {
             "--scroll-x": string;
+            "--scroll-max": string;
           }
         }
       >
