@@ -9,6 +9,7 @@ import React, {
 import { Tab } from "../type";
 import { Button } from "@blueprintjs/core";
 import {
+  focusTab,
   isAutoOpenNewTab,
   removeTab,
   saveAndRefreshTabs,
@@ -188,7 +189,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
 
   return (
     <div
-      onClick={() => isObstructed && focusPage(index)}
+      onClick={() => focusPage(index)}
       className={`roam-stack-card `}
       style={
         {
@@ -284,6 +285,9 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
 
         {/* 内容 */}
         <div
+          onPointerDown={(e) => {
+            focusTab(item.id);
+          }}
           style={{
             padding: "20px",
             paddingLeft: `40px`,

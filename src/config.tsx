@@ -251,6 +251,21 @@ export function removeTab(tabUid: string): void {
   }
 }
 
+export function focusTab(uid: string) {
+  const cacheTab = loadTabsFromSettings();
+  const tabs = cacheTab?.tabs || [];
+  const tabIndex = tabs.findIndex((tab) => tab.uid === uid);
+  if (tabIndex > -1) {
+    saveTabsToSettings(tabs, tabs[tabIndex]);
+    renderStackApp();
+    window.roamAlphaAPI.ui.mainWindow.openBlock({
+      block: {
+        uid: tabs[tabIndex].blockUid || tabs[tabIndex].uid,
+      },
+    });
+  }
+}
+
 export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
   // 非用户，不保存
   const uid = userUid();
