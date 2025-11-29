@@ -285,7 +285,7 @@ export function removeTab(tabUid: string): void {
   const tabs = cacheTab?.tabs || [];
   const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
   if (cacheTab?.activeTab?.uid !== tabUid) {
-    saveTabsToSettings(newTabs);
+    saveTabsToSettings(newTabs, cacheTab?.activeTab);
     renderStackApp();
     return;
   }
