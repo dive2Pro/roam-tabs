@@ -29,6 +29,7 @@ type StackContextType = {
   openPage: (id: string) => void;
   focusPage: (index: number) => void;
   containerRef: React.RefObject<HTMLDivElement>;
+  handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
 };
 
 /* ===========================================================================
@@ -37,7 +38,15 @@ type StackContextType = {
 const CONSTANTS = {
   PAGE_WIDTH: 650, // 页面刚性宽度
   SPINE_WIDTH: 50, // 脊宽度
+  TITLE_SHOW_AT: 100, // 🔥 核心配置：当未被遮盖范围剩 100px 时，标题才开始出现
 };
+
+// 单个页面完全折叠需要的位移量 (650 - 50 = 600)
+const FOLD_OFFSET = CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH;
+
+// 标题触发的相对偏移量 (650 - 100 = 550)
+// 意味着：页面被盖住了 550px，只剩 100px 时，标题动画开始
+const TITLE_TRIGGER_OFFSET = CONSTANTS.PAGE_WIDTH - CONSTANTS.TITLE_SHOW_AT;
 
 /* ===========================================================================
  * 3. 模拟数据
@@ -77,8 +86,7 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
       // 公式： 目标滚动位置 = 索引 * (页面宽度 - 脊宽度)
       // 解释： 既然每个页面在折叠时都贡献了 (PageWidth - SpineWidth) 的位移，
       //       要看第 N 页，就需要把前面 N-1 页的这部分位移都滚过去。
-      const targetScrollLeft =
-        index * (CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH);
+      const targetScrollLeft = index * FOLD_OFFSET;
 
       el.scrollTo({
         left: targetScrollLeft,
@@ -117,12 +125,24 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
     // 点击脊部时，也使用精确对齐逻辑
     scrollToPageIndex(index);
   };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (containerRef.current) {
+      containerRef.current.style.setProperty(
+        "--scroll-x",
+        `${e.currentTarget.scrollLeft}`
+      );
+    }
+  };
+
   useEffect(() => {
     scrollToPageIndex(activeIndex);
   }, [activeIndex]);
 
   return (
-    <StackContext.Provider value={{ stack, openPage, focusPage, containerRef }}>
+    <StackContext.Provider
+      value={{ stack, openPage, focusPage, containerRef, handleScroll }}
+    >
       {children}
     </StackContext.Provider>
   );
@@ -152,17 +172,57 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
     });
   }, [item.id]);
 
+  // --- 1. 基础折叠点 ---
+  // 页面 sticky 吸附的时刻
+  const foldStart = index * FOLD_OFFSET;
+
+  // --- 2. 标题触发点 (关键修改) ---
+  // foldStart 是页面刚刚 sticky 住的时刻 (此时可见宽度 = 650px)
+  // 我们加上 TITLE_TRIGGER_OFFSET (550px)，表示右边页面已经盖过来 550px 了
+  // 此时可见宽度 = 100px。从这一刻开始，标题才允许出现。
+  const titleTriggerPoint = foldStart + TITLE_TRIGGER_OFFSET;
+
+  // --- 3. 阴影触发点 ---
+  // 当我(index)开始覆盖前一页(index-1)时
+  const overlapStart = (index - 1) * FOLD_OFFSET;
+
   return (
     <div
       onClick={() => isObstructed && focusPage(index)}
       className="roam-stack-card"
-      style={{
-        width: `${CONSTANTS.PAGE_WIDTH}px`,
-        // 你的老朋友 sticky left
-        left: `${index * CONSTANTS.SPINE_WIDTH}px`,
-        zIndex: index,
-        cursor: isObstructed ? "pointer" : "default",
-      }}
+      style={
+        {
+          // 传递给 CSS
+          "--title-trigger": `${titleTriggerPoint}`,
+          "--overlap-start": `${overlapStart}`,
+          // --- 核心 A: 标题透明度 ---
+          // 范围：从 (可见宽度100px) 到 (可见宽度50px/完全折叠)
+          // 距离差是 50px (SPINE_WIDTH ~ 100px)
+          // 计算：(当前滚动 - 触发点) / 50
+          //   "--title-opacity": `clamp(0, (var(--scroll-x) - var(--title-trigger)) / 50, 1)`,
+          // --- 核心 B: 阴影透明度 ---
+          // 一旦开始重叠，30px 内阴影显现
+          "--shadow-opacity":
+            index === 0
+              ? "0"
+              : `clamp(0, (var(--scroll-x) - var(--overlap-start)) / 30, 1)`,
+          width: `${CONSTANTS.PAGE_WIDTH}px`,
+          // 你的老朋友 sticky left
+          left: `${index * CONSTANTS.SPINE_WIDTH}px`,
+          zIndex: index,
+          cursor: isObstructed ? "pointer" : "default",
+          // 左侧外阴影 (覆盖在前一页上的阴影)
+          boxShadow: `
+          -10px 0 20px -5px rgba(0,0,0, calc(0.3 * var(--shadow-opacity))),
+          -30px 0 50px -10px rgba(0,0,0, calc(0.1 * var(--shadow-opacity)))
+        `,
+        } as React.CSSProperties & {
+          "--title-trigger": string;
+          "--overlap-start": string;
+          "--title-opacity": string;
+          "--shadow-opacity": string;
+        }
+      }
     >
       {/* 垂直脊 */}
       <div
@@ -173,21 +233,47 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
           bottom: 0,
           width: `${CONSTANTS.SPINE_WIDTH}px`,
           display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          //   justifyContent: "center",
           writingMode: "vertical-rl",
-          color: "#888",
+          color: "#666",
+          fontWeight: "bold",
+          letterSpacing: "2px",
           borderRight: "1px solid rgba(0,0,0,0.05)",
           background: "rgba(255,255,255,0.5)",
-          paddingTop: 20,
-          alignItems: "center",
-          gap: 10,
+          pointerEvents: "none",
         }}
       >
-        <Button
-          icon="cross"
-          minimal
-          onClick={() => removeTab(item.id)}
-        ></Button>
-        {item.title}
+        {/* 关闭按钮 - 始终可见 */}
+        <div
+          style={{
+            pointerEvents: "auto",
+            opacity: 1,
+            marginBottom: "10px",
+          }}
+        >
+          <Button
+            icon="cross"
+            minimal
+            onClick={(e) => {
+              e.stopPropagation();
+              removeTab(item.id);
+            }}
+          ></Button>
+        </div>
+        {/* 标题文本 - 动态透明度 */}
+        <div
+          style={
+            {
+              opacity: "var(--title-opacity)",
+            } as React.CSSProperties & {
+              "--title-opacity": string;
+            }
+          }
+        >
+          {item.title}
+        </div>
       </div>
 
       {/* 内容 */}
@@ -212,7 +298,7 @@ const Layout = () => {
   if (!context) {
     throw new Error("Layout must be used within StackProvider");
   }
-  const { stack, containerRef } = context;
+  const { stack, containerRef, handleScroll } = context;
   console.log("stack", stack);
   return (
     <div
@@ -236,15 +322,21 @@ const Layout = () => {
 
       <div
         ref={containerRef}
-        style={{
-          flex: 1,
-          display: "flex",
-          overflowX: "auto",
-          overflowY: "hidden",
-          scrollBehavior: "smooth",
-          // 移除 paddingRight 以保证精确控制边界
-          paddingRight: 0,
-        }}
+        onScroll={handleScroll}
+        style={
+          {
+            flex: 1,
+            display: "flex",
+            overflowX: "auto",
+            overflowY: "hidden",
+            scrollBehavior: "smooth",
+            // 移除 paddingRight 以保证精确控制边界
+            paddingRight: 0,
+            "--scroll-x": "0",
+          } as React.CSSProperties & {
+            "--scroll-x": string;
+          }
+        }
       >
         {stack.map((item: PageItem, index: number) => (
           <PageCard

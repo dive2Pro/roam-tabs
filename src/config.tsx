@@ -111,11 +111,13 @@ const renderAppForConfig = () => {
 };
 
 const renderStackApp = () => {
-  renderApp(
-    API.settings.get(Keys.TabMode),
-    loadTabsFromSettings()?.tabs || [],
-    loadTabsFromSettings()?.activeTab || undefined
-  );
+  setTimeout(() => {
+    renderApp(
+      API.settings.get(Keys.TabMode),
+      loadTabsFromSettings()?.tabs || [],
+      loadTabsFromSettings()?.activeTab || undefined
+    );
+  });
 };
 const toggleAppClass = () => {
   const app = document.querySelector(".roam-app");
@@ -218,15 +220,21 @@ function saveTabsForClientToSettings(tabs: Tab[]): void {
 
 export function saveAndRefreshTabs(tabs: Tab[], activeTab?: Tab): void {
   saveTabsToSettings(tabs, activeTab);
-  setTimeout(() => {
-    renderStackApp();
-  });
+  renderStackApp();
 }
 
 export function removeTab(tabUid: string): void {
   const tabs = loadTabsFromSettings()?.tabs || [];
   const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
-  saveTabsToSettings(newTabs);
+  if (newTabs.length) {
+    // window.roamAlphaAPI.ui.mainWindow.openBlock({
+    //   block: {
+    //     uid: newTabs[newTabs.length - 1].blockUid,
+    //   },
+    // });
+  }
+  saveTabsToSettings(newTabs, newTabs[newTabs.length - 1]);
+
   renderStackApp();
 }
 export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
