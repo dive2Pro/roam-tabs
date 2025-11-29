@@ -303,6 +303,16 @@ export function removeTab(tabUid: string): void {
   }
 }
 
+export function focusOnPageTab(uid: string) {
+  const cacheTab = loadTabsFromSettings();
+  const tabs = [...(cacheTab?.tabs || [])];
+  const tabIndex = tabs.findIndex((tab) => tab.uid === uid);
+  if (tabIndex > -1) {
+    tabs[tabIndex].blockUid = uid;
+    saveTabsToSettings(tabs, tabs[tabIndex]);
+    renderStackApp();
+  }
+}
 export function focusTab(uid: string) {
   const cacheTab = loadTabsFromSettings();
   const tabs = cacheTab?.tabs || [];
