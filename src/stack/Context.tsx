@@ -14,6 +14,7 @@ import {
   saveAndRefreshTabs,
   saveTabsToSettings,
 } from "../config";
+import { resetStackModeShowingState } from ".";
 // import { removeTab } from "../extension";
 
 /* ===========================================================================
@@ -26,10 +27,10 @@ type PageItem = {
 
 type StackContextType = {
   stack: PageItem[];
-  openPage: (id: string) => void;
   focusPage: (index: number) => void;
   containerRef: React.RefObject<HTMLDivElement>;
   handleScroll: (e: React.UIEvent<HTMLDivElement>) => void;
+  focusedIndex: number | null;
 };
 
 /* ===========================================================================
@@ -75,6 +76,8 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stack = tabs;
   const activeIndex = stack.findIndex((p) => p.id === active);
+  //   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const focusedIndex = activeIndex;
   /**
    * 核心算法：精确滚动到指定索引
    * 目标：让该页面的左边缘，刚好紧贴着前面所有页面的"脊"
@@ -92,32 +95,24 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
         left: targetScrollLeft,
         behavior: "smooth",
       });
-    }
-  };
 
-  const openPage = (id: string) => {
-    const existingIndex = stack.findIndex((p) => p.id === id);
-
-    if (existingIndex !== -1) {
-      // ✅ 1. 页面已存在：直接精确滑动到该位置
-      scrollToPageIndex(existingIndex);
-    } else {
-      // ✅ 2. 页面不存在：先添加，等待渲染后滑动到最后
-      const newPage = DATA.find((d) => d.id === id) || {
-        id,
-        title: `New Page ${id}`,
-        bg: "#e6f7ff",
+      // 等待滚动完成后触发聚焦动画
+      const triggerFocusAnimation = () => {
+        // setFocusedIndex(index);
+        // 聚焦状态保持 2.5 秒，让用户看到常驻的 box-shadow 和闪动效果
+        setTimeout(() => {
+          //   setFocusedIndex(null);
+        }, 500);
       };
 
-      //   setStack((prev) => {
-      //     const newStack = [...prev, newPage];
-      //     // 这是一个微小的 hack：利用 setTimeout 确保 state 更新导致 DOM 渲染后，再执行滚动
-      //     // 在 React 18+ 也可以用 useLayoutEffect 或 flushSync，但在事件处理中这样最简单
-      //     setTimeout(() => {
-      //       scrollToPageIndex(newStack.length - 1);
-      //     }, 50);
-      //     return newStack;
-      //   });
+      // 使用 scrollend 事件（如果支持）或 fallback 到 setTimeout
+      if ("onscrollend" in el) {
+        el.addEventListener("scrollend", triggerFocusAnimation, { once: true });
+      } else {
+        // Fallback: 估算滚动时间（smooth 滚动通常需要 300-500ms）
+        const estimatedScrollTime = 20;
+        setTimeout(triggerFocusAnimation, estimatedScrollTime);
+      }
     }
   };
 
@@ -141,7 +136,7 @@ const StackProvider = ({ children, tabs, active }: StackProviderProps) => {
 
   return (
     <StackContext.Provider
-      value={{ stack, openPage, focusPage, containerRef, handleScroll }}
+      value={{ stack, focusPage, containerRef, handleScroll, focusedIndex }}
     >
       {children}
     </StackContext.Provider>
@@ -162,8 +157,11 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
   if (!context) {
     throw new Error("PageCard must be used within StackProvider");
   }
-  const { openPage, focusPage } = context;
+  const { focusPage, focusedIndex } = context;
   const isObstructed = index < total - 1;
+  const isFocused = focusedIndex === index;
+  console.log("isFocused", { index, focusedIndex, isFocused });
+
   const contentRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setTimeout(() => {
@@ -171,7 +169,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         el: contentRef.current,
         uid: item.id,
       });
-    }, 150);
+    }, 50);
   }, [item.id]);
 
   // --- 1. 基础折叠点 ---
@@ -191,7 +189,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
   return (
     <div
       onClick={() => isObstructed && focusPage(index)}
-      className="roam-stack-card"
+      className={`roam-stack-card `}
       style={
         {
           // 传递给 CSS
@@ -226,68 +224,75 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         }
       }
     >
-      {/* 垂直脊 */}
       <div
-        style={{
-          //   position: "absolute",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: `${CONSTANTS.SPINE_WIDTH}px`,
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          //   justifyContent: "center",
-          writingMode: "vertical-rl",
-          color: "#666",
-          fontWeight: "bold",
-          letterSpacing: "2px",
-          borderRight: "1px solid rgba(0,0,0,0.05)",
-          background: "rgba(255,255,255,0.5)",
-          pointerEvents: "none",
-        }}
+        className={`roam-stack-card-content ${
+          isFocused ? "roam-stack-card-focused" : ""
+        }`}
       >
-        {/* 关闭按钮 - 始终可见 */}
+        {/* 垂直脊 */}
         <div
+          className="roam-stack-card-spine"
           style={{
-            pointerEvents: "auto",
-            opacity: 1,
-            marginBottom: "10px",
+            //   position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${CONSTANTS.SPINE_WIDTH}px`,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            //   justifyContent: "center",
+            writingMode: "vertical-rl",
+            color: "#666",
+            fontWeight: "bold",
+            letterSpacing: "2px",
+            borderRight: "1px solid rgba(0,0,0,0.05)",
+            background: "rgba(255,255,255,0.5)",
+            pointerEvents: "none",
           }}
         >
-          <Button
-            icon="cross"
-            minimal
-            onClick={(e) => {
-              e.stopPropagation();
-              removeTab(item.id);
+          {/* 关闭按钮 - 始终可见 */}
+          <div
+            style={{
+              pointerEvents: "auto",
+              opacity: 1,
+              marginBottom: "10px",
             }}
-          ></Button>
-        </div>
-        {/* 标题文本 - 动态透明度 */}
-        <div
-          style={
-            {
-              opacity: "var(--title-opacity)",
-            } as React.CSSProperties & {
-              "--title-opacity": string;
+          >
+            <Button
+              icon="cross"
+              minimal
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTab(item.id);
+              }}
+            ></Button>
+          </div>
+          {/* 标题文本 - 动态透明度 */}
+          <div
+            style={
+              {
+                opacity: "var(--title-opacity)",
+              } as React.CSSProperties & {
+                "--title-opacity": string;
+              }
             }
-          }
-        >
-          {item.title}
+          >
+            {item.title}
+          </div>
         </div>
-      </div>
 
-      {/* 内容 */}
-      <div
-        style={{
-          padding: "20px",
-          paddingLeft: `40px`,
-          overflow: "auto",
-          width: CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH,
-        }}
-        ref={contentRef}
-      ></div>
+        {/* 内容 */}
+        <div
+          style={{
+            padding: "20px",
+            paddingLeft: `40px`,
+            overflow: "auto",
+            width: CONSTANTS.PAGE_WIDTH - CONSTANTS.SPINE_WIDTH,
+          }}
+          ref={contentRef}
+        ></div>
+      </div>
     </div>
   );
 };
@@ -301,7 +306,6 @@ const Layout = () => {
     throw new Error("Layout must be used within StackProvider");
   }
   const { stack, containerRef, handleScroll } = context;
-  console.log("stack", stack);
   return (
     <div
       style={{
@@ -340,6 +344,26 @@ const Layout = () => {
           }
         }
       >
+        {stack.length === 0 && (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "20px",
+                color: "#666",
+              }}
+            >
+              No tabs
+            </div>
+          </div>
+        )}
         {stack.map((item: PageItem, index: number) => (
           <PageCard
             key={item.id}
@@ -359,6 +383,10 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
       await new Promise((resolve) => setTimeout(resolve, 50));
       const pageOrBlockUid =
         await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
+      resetStackModeShowingState();
+      if (!pageOrBlockUid) {
+        return;
+      }
       let pageData = (await window.roamAlphaAPI.data.async.q(
         `[:find [?e ?t]  :where [?b :block/uid "${pageOrBlockUid}"] [?b :block/page ?p]
          [?p :block/uid ?e]
@@ -414,6 +442,7 @@ export const StackApp = (props: { tabs: Tab[]; currentTab: Tab }) => {
       //     saveAndRefreshTabs(tabs, newTab);
       //   }
     };
+
     window.addEventListener("hashchange", onRouteChange);
 
     return () => {

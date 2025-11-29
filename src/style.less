@@ -1,13 +1,13 @@
 .roam-main {
-    position: relative;
+  position: relative;
 }
 .roam-app-stack {
-    .roam-tabs {
-        display: none;
-    }
-    .roam-stack-container {
-        display: block;
-    }
+  .roam-tabs {
+    display: none;
+  }
+  .roam-stack-container {
+    display: block;
+  }
 }
 .roam-tabs {
   height: 30px;
@@ -41,7 +41,7 @@
 }
 
 .roam-body .roam-app .roam-body-main {
-  flex: 0 0 calc(100% - 75px);
+  //   flex: 0 0 calc(100% - 75px);
 }
 
 .roam-stack {
@@ -54,11 +54,21 @@
     background-color: white;
     z-index: 11;
     display: none;
+    &.roam-stack-container-hide {
+      display: none;
+    }
     .rm-streak {
-        overflow: auto;
+      overflow: auto;
+    }
+    .roam-stack-card-focused .roam-stack-card-spine {
+      box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));
     }
   }
+ 
   &-card {
+    &-content {
+      display: flex;
+    }
     flex-shrink: 0;
     display: flex;
     height: 100%;
@@ -72,5 +82,4 @@
   .rm-api-render--page {
     padding-left: 30px;
   }
-  
 }

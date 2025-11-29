@@ -112,13 +112,17 @@ const renderAppForConfig = () => {
 
 const renderStackApp = () => {
   setTimeout(() => {
-    renderApp(
-      API.settings.get(Keys.TabMode),
-      loadTabsFromSettings()?.tabs || [],
-      loadTabsFromSettings()?.activeTab || undefined
-    );
+    const tabs = loadTabsFromSettings()?.tabs || [];
+    const activeTab = loadTabsFromSettings()?.activeTab || undefined;
+    if (tabs.length) {
+      // onStackModeShow();
+    } else {
+      // onStackModeHide();
+    }
+    renderApp(API.settings.get(Keys.TabMode), tabs, activeTab);
   });
 };
+
 const toggleAppClass = () => {
   const app = document.querySelector(".roam-app");
   if (!app) {
@@ -227,24 +231,26 @@ export function removeTab(tabUid: string): void {
   const cacheTab = loadTabsFromSettings();
   const tabs = cacheTab?.tabs || [];
   const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
-
+  console.log("removeTab", tabUid, newTabs);
   if (cacheTab?.activeTab?.uid !== tabUid) {
     saveTabsToSettings(newTabs);
     renderStackApp();
     return;
   }
-
-  if (newTabs.length) {
-    saveTabsToSettings(newTabs, newTabs[newTabs.length - 1]);
-    renderStackApp();
-
+  const activeTab = newTabs.length ? newTabs[newTabs.length - 1] : undefined;
+  saveTabsToSettings(newTabs, activeTab);
+  renderStackApp();
+  if (!activeTab) {
+    window.roamAlphaAPI.ui.mainWindow.openDailyNotes();
+  } else {
     window.roamAlphaAPI.ui.mainWindow.openBlock({
       block: {
-        uid: newTabs[newTabs.length - 1].blockUid,
+        uid: activeTab.blockUid || activeTab.uid,
       },
     });
   }
 }
+
 export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
   // 非用户，不保存
   const uid = userUid();
