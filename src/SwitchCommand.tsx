@@ -10,6 +10,7 @@ type SwitchCommandProps = {
   tabs: Tab[];
   API: RoamExtensionAPI;
   onTabSelect: (tab: Tab) => void;
+  onTabSorted: (tabs: Tab[]) => void;
 };
 
 function escapeRegExpChars(text: string) {
@@ -47,7 +48,12 @@ function highlightText(text: string, query: string) {
   return tokens;
 }
 
-export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
+export function SwitchCommand({
+  tabs,
+  API,
+  onTabSelect,
+  onTabSorted,
+}: SwitchCommandProps) {
   const [state, setState] = useState({
     open: false,
   });
@@ -69,7 +75,7 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
       div.remove();
     };
   }, []);
-  console.log("container", container);
+
   useEffect(() => {
     API.ui.commandPalette.addCommand({
       label: "Switch Tab...",
@@ -141,9 +147,14 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
               oldIndex: number;
               newIndex: number;
             }) => {
-              setFilteredItems(
-                arrayMove(currentFilteredItems, oldIndex, newIndex)
+              console.log({ oldIndex, newIndex, currentFilteredItems });
+              const newItems = arrayMove(
+                currentFilteredItems,
+                oldIndex,
+                newIndex
               );
+              onTabSorted(newItems);
+              setFilteredItems(newItems);
             }}
             renderList={({
               children,
@@ -207,13 +218,24 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
                 }}
               >
                 <div
-                  className="bp3-menu-item"
+                  className={
+                    "bp3-menu-item" +
+                    `${
+                      (itemListProps.activeItem as Tab)?.uid === value.uid
+                        ? " bp3-active"
+                        : ""
+                    }`
+                  }
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     width: "100%",
                     padding: "10px 7px",
+                  }}
+                  onClick={() => {
+                    onTabSelect(value);
+                    setState({ open: false });
                   }}
                 >
                   <span>{highlightText(value.title, itemListProps.query)}</span>

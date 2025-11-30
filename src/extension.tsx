@@ -46,7 +46,7 @@ const _mount = async () => {
   const roamMain = document.querySelector(".roam-main");
   el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
-  const articleWrapper = document.querySelector(".rm-article-wrapper");
+
   if (!el) {
     el = document.createElement("div");
     el.className = clazz;
@@ -366,6 +366,10 @@ function App() {
       <SwitchCommand
         tabs={tabs}
         API={API}
+        onTabSorted={(newTabs) => {
+          tabs = newTabs;
+          mount();
+        }}
         onTabSelect={(tab) => {
           setCurrentTab(tab);
           mount();

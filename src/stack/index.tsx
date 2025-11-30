@@ -5,7 +5,7 @@ import { extension_helper } from "../helper";
 import { ReactNode } from "react";
 import { SwitchCommand } from "../SwitchCommand";
 import { RoamExtensionAPI } from "roam-types";
-import { focusTab } from "../config";
+import { focusTab, saveAndRefreshTabs } from "../config";
 const ElParent = "roam-main";
 const El = "roam-stack-container";
 let root: ReactDOM.Root | null = null;
@@ -92,6 +92,9 @@ export const renderApp = (
         API={extensionAPI}
         onTabSelect={(tab) => {
           focusTab(tab.uid);
+        }}
+        onTabSorted={(tabs) => {
+          saveAndRefreshTabs(tabs, currentTab);
         }}
       />
     </App>

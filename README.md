@@ -56,6 +56,17 @@ You can open the switch palette by
 
 When the switch palette opens, the input text is automatically selected, so you can start typing immediately to search for tabs.
 
+### Drag to Reorder Tabs in Switch Palette
+
+You can reorder tabs directly in the switch palette by dragging the handle icon (⋮⋮) on the right side of each tab item. This allows you to:
+
+- **Drag to Reorder**: Click and hold the drag handle (⋮⋮) on any tab item and drag it to a new position
+- **Visual Feedback**: The dragged item will show visual feedback (highlighted background and reduced opacity)
+- **Auto-scroll**: When dragging near the top or bottom of the list, the viewport will automatically scroll to help you reach items outside the visible area
+- **Persistent Order**: The new order is saved and will be reflected in your tab bar
+
+**Note**: The drag handle only appears when there's no search query active, allowing you to reorder tabs when browsing the full list.
+
 ## Remember scroll position
 
 Each tab can remember your scroll position and reback to it when you switch back to the tab
