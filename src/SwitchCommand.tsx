@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { MenuItem, Menu } from "@blueprintjs/core";
+import React, { useState, useEffect, useRef } from "react";
+import { MenuItem, Menu, Icon } from "@blueprintjs/core";
 import { Omnibar } from "@blueprintjs/select";
-import { NodeGroup } from "react-move";
+
+import { List, arrayMove } from "react-movable";
 import type { Tab } from "./type";
 import type { RoamExtensionAPI } from "roam-types";
 
@@ -51,6 +52,24 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
     open: false,
   });
 
+  // 用于存储过滤后的项目列表，支持拖拽排序
+  const [filteredItems, setFilteredItems] = useState<Tab[]>([]);
+
+  const [container, setContainer] = React.useState<Element | null>(null);
+  React.useEffect(() => {
+    if (document.querySelector(".roam-tabs-switch-el")) {
+      setContainer(document.querySelector(".roam-tabs-switch-el") as Element);
+      return;
+    }
+    const div = document.createElement("div");
+    div.className = "roam-tabs-switch-el";
+    document.body.appendChild(div);
+    setContainer(div);
+    return () => {
+      div.remove();
+    };
+  }, []);
+  console.log("container", container);
   useEffect(() => {
     API.ui.commandPalette.addCommand({
       label: "Switch Tab...",
@@ -74,6 +93,9 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
           input.select();
         }
       }, 0);
+    } else {
+      // 关闭时重置过滤列表
+      setFilteredItems([]);
     }
   }, [state.open]);
 
@@ -99,63 +121,118 @@ export function SwitchCommand({ tabs, API, onTabSelect }: SwitchCommandProps) {
         setState({ open: false });
       }}
       itemListRenderer={(itemListProps) => {
+        // 当过滤项变化时，同步更新 filteredItems
+        const currentFilteredItems =
+          filteredItems.length > 0 &&
+          filteredItems.every((item) =>
+            itemListProps.filteredItems.some((f) => f.uid === item.uid)
+          )
+            ? filteredItems
+            : itemListProps.filteredItems;
+
         return (
-          <Menu>
-            <NodeGroup
-              data={itemListProps.filteredItems}
-              start={(data, index) => {
-                return {
-                  y: 35,
-                  opacity: 0,
-                };
-              }}
-              enter={(data, index) => {
-                return {
-                  opacity: [1],
-                  timing: {
-                    duration: 250,
-                  },
-                };
-              }}
-              leave={(data, index) => {
-                return [
-                  {
-                    y: [-35],
-                    timing: {
-                      duration: 250,
-                    },
-                  },
-                  {
-                    opacity: [0],
-                    timing: {
-                      duration: 150,
-                    },
-                  },
-                ];
-              }}
-              keyAccessor={(data) => data.uid}
-            >
-              {(nodes) => {
-                return (
-                  <>
-                    {nodes.map((node, index) => {
-                      return (
-                        <div
-                          key={node.key}
-                          style={{
-                            opacity: node.state.opacity,
-                            height: node.state.y,
-                          }}
-                        >
-                          {itemListProps.renderItem(node.data, index)}
-                        </div>
-                      );
-                    })}
-                  </>
-                );
-              }}
-            </NodeGroup>
-          </Menu>
+          <List
+            container={container}
+            values={currentFilteredItems}
+            onChange={({
+              oldIndex,
+              newIndex,
+            }: {
+              oldIndex: number;
+              newIndex: number;
+            }) => {
+              setFilteredItems(
+                arrayMove(currentFilteredItems, oldIndex, newIndex)
+              );
+            }}
+            renderList={({
+              children,
+              props,
+              isDragged,
+            }: {
+              children: React.ReactNode;
+              props: any;
+              isDragged: boolean;
+            }) => {
+              if (isDragged) {
+                container?.classList.add("show");
+              } else {
+                container?.classList.remove("show");
+              }
+              return (
+                <div
+                  {...props}
+                  className="bp3-menu"
+                  style={{
+                    ...props.style,
+                    overflowY: "scroll",
+                    overflowX: "hidden",
+                    maxHeight: 600,
+                    cursor: isDragged ? "grabbing" : undefined,
+                  }}
+                >
+                  {children}
+                </div>
+              );
+            }}
+            renderItem={({
+              value,
+              props,
+              isDragged,
+              isSelected,
+            }: {
+              value: Tab;
+              props: any;
+              isDragged: boolean;
+              isSelected: boolean;
+            }) => (
+              <li
+                {...props}
+                key={props.key}
+                style={{
+                  ...props.style,
+                  cursor: isDragged ? "grabbing" : "grab",
+                  // padding: "1.5em",
+                  // margin: "0.5em 0em",
+                  // listStyleType: "none",
+                  // border: "2px solid #CCC",
+                  // boxShadow: "3px 3px #AAA",
+                  // color: "#333",
+                  // borderRadius: "5px",
+
+                  backgroundColor:
+                    isDragged || isSelected ? "#f5f5f5" : "transparent",
+                  opacity: isDragged ? 0.8 : 1,
+                  zIndex: isDragged ? 99 : 1,
+                }}
+              >
+                <div
+                  className="bp3-menu-item"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    padding: "10px 7px",
+                  }}
+                >
+                  <span>{highlightText(value.title, itemListProps.query)}</span>
+                  {!itemListProps.query ? (
+                    <Icon
+                      icon="drag-handle-vertical"
+                      data-movable-handle
+                      style={{
+                        cursor: "grab",
+                        opacity: 0.5,
+                        marginLeft: "8px",
+                        userSelect: "none",
+                      }}
+                    />
+                  ) : null}
+                </div>
+              </li>
+            )}
+          />
         );
       }}
     />
