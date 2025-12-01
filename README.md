@@ -67,12 +67,6 @@ You can reorder tabs directly in the switch palette by dragging the handle icon 
 
 **Note**: The drag handle only appears when there's no search query active, allowing you to reorder tabs when browsing the full list.
 
-## Remember scroll position
-
-Each tab can remember your scroll position and reback to it when you switch back to the tab
-
-![remember tab position](https://github.com/dive2Pro/roam-tabs/assets/23192045/d2413b24-8859-429e-a7a8-44241897aedc)
-
 ## Open Tab in Sidebar
 
 **Shift** + click on tabs
