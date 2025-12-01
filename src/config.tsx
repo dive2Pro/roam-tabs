@@ -82,7 +82,7 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
           placeholder: "650",
           onChange: (evt: { target: { value: string } }) => {
             const value = evt.target.value;
-            console.log("onChange", value, typeof value);
+            // console.log("onChange", value, typeof value);
 
             if (Number(value)) {
               API.settings.set(Keys.StackPageWidth, Number(value));
@@ -149,7 +149,7 @@ export function getStackPageWidth(): number {
   if (!API) {
     return 650;
   }
-  console.log(API);
+  // console.log(API);
   return (API.settings.get(Keys.StackPageWidth) as number) || 650;
 }
 
@@ -292,15 +292,18 @@ export function removeTab(tabUid: string): void {
   const activeTab = newTabs.length ? newTabs[newTabs.length - 1] : undefined;
   saveTabsToSettings(newTabs, activeTab);
   renderStackApp();
-  if (!activeTab) {
-    window.roamAlphaAPI.ui.mainWindow.openDailyNotes();
-  } else {
-    window.roamAlphaAPI.ui.mainWindow.openBlock({
-      block: {
-        uid: activeTab.blockUid || activeTab.uid,
-      },
-    });
-  }
+  setTimeout(() => {
+    console.log(` next active `, newTabs, activeTab);
+    if (!activeTab) {
+      window.roamAlphaAPI.ui.mainWindow.openDailyNotes();
+    } else {
+      window.roamAlphaAPI.ui.mainWindow.openBlock({
+        block: {
+          uid: activeTab.blockUid || activeTab.uid,
+        },
+      });
+    }
+  }, 100);
 }
 
 export function focusOnPageTab(uid: string) {

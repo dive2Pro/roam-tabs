@@ -427,8 +427,8 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         {/* 内容 */}
         <div
           onPointerDown={(e) => {
+            if (e.button !== 0) return;
             const target = e.target as HTMLElement;
-
             if (target.classList.contains("rm-page-ref")) {
               const linkUid = target
                 .closest("[data-link-uid]")
