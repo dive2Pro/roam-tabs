@@ -59,20 +59,19 @@ const mount = async (tabs: Tab[], currentTab?: Tab) => {
   }
   // scroll to active button
   setTimeout(() => {
-    const rbm = document.querySelector(".rm-article-wrapper");
-    rbm.scrollTop = currentTab?.scrollTop || 0;
-
-    // scrollIntoActiveTab();
-    makeActiveTabMoveIntoVersion();
-    function makeActiveTabMoveIntoVersion() {
-      const activeEl = document.querySelector(
-        ".roam-tab-active"
-      ) as HTMLElement;
-      activeEl &&
-        activeEl.scrollIntoView({
-          behavior: "smooth",
-        });
-    }
+    // const rbm = document.querySelector(".rm-article-wrapper");
+    // rbm.scrollTop = currentTab?.scrollTop || 0;
+    // // scrollIntoActiveTab();
+    // makeActiveTabMoveIntoVersion();
+    // function makeActiveTabMoveIntoVersion() {
+    //   const activeEl = document.querySelector(
+    //     ".roam-tab-active"
+    //   ) as HTMLElement;
+    //   activeEl &&
+    //     activeEl.scrollIntoView({
+    //       behavior: "smooth",
+    //     });
+    // }
   }, 100);
 };
 
@@ -171,9 +170,9 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
       return;
     }
 
-    rbm.addEventListener("scroll", onScroll);
+    // rbm.addEventListener("scroll", onScroll);
     return () => {
-      rbm.removeEventListener("scroll", onScroll);
+      // rbm.removeEventListener("scroll", onScroll);
     };
   }, [tabs, currentTab]);
   useOnUidWillChange((uid) => {
