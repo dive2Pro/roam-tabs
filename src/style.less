@@ -70,6 +70,7 @@
     .roam-stack-card-title {
       line-height: inherit;
       flex: 1;
+      cursor: pointer;
     }
     .roam-stack-card-spine {
       left: 0;
@@ -84,8 +85,10 @@
       letter-spacing: 2px;
       border-right: 1px solid rgba(0,0,0,0.05);
       background: rgba(255,255,255,0.5);
-      pointer-events: none;
 
+      .bp3-button-text {
+        display: contents;
+      }
     };
     .roam-stack-card-focused .roam-stack-card-spine {
       box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));

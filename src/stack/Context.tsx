@@ -6,7 +6,14 @@ import React, {
   useEffect,
 } from "react";
 import { Tab } from "../type";
-import { Button, Icon } from "@blueprintjs/core";
+import {
+  Button,
+  Icon,
+  ContextMenu,
+  Menu,
+  MenuItem,
+  MenuDivider,
+} from "@blueprintjs/core";
 import {
   focusOnPageTab,
   focusTab,
@@ -15,6 +22,7 @@ import {
   removeTab,
   saveAndRefreshTabs,
 } from "../config";
+import { copyToClipboard } from "../helper";
 
 import { useOnUidWillChange } from "../hooks/useOnUidChangeElementClicked";
 // import { removeTab } from "../extension";
@@ -42,6 +50,9 @@ type StackContextType = {
   foldOffset: number;
   titleTriggerOffset: number;
   togglePin: (uid: string) => void;
+  removeOtherTabs: (uid: string) => void;
+  removeToTheRightTabs: (index: number) => void;
+  openInSidebar: (uid: string) => void;
 };
 
 /* ===========================================================================
@@ -75,6 +86,9 @@ type StackProviderProps = {
   active: string;
   pageWidth: number;
   onTogglePin: (uid: string) => void;
+  onRemoveOtherTabs: (uid: string) => void;
+  onRemoveToTheRightTabs: (index: number) => void;
+  onOpenInSidebar: (uid: string) => void;
 };
 
 const StackProvider = ({
@@ -83,6 +97,9 @@ const StackProvider = ({
   active,
   pageWidth,
   onTogglePin,
+  onRemoveOtherTabs,
+  onRemoveToTheRightTabs,
+  onOpenInSidebar,
 }: StackProviderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
@@ -250,6 +267,15 @@ const StackProvider = ({
         togglePin: (uid: string) => {
           onTogglePin(uid);
         },
+        removeOtherTabs: (uid: string) => {
+          onRemoveOtherTabs(uid);
+        },
+        removeToTheRightTabs: (index: number) => {
+          onRemoveToTheRightTabs(index);
+        },
+        openInSidebar: (uid: string) => {
+          onOpenInSidebar(uid);
+        },
       }}
     >
       {children}
@@ -279,6 +305,9 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
     foldOffset,
     titleTriggerOffset,
     togglePin,
+    removeOtherTabs,
+    removeToTheRightTabs,
+    openInSidebar,
   } = context;
   const isObstructed = index < total - 1;
   const isFocused = focusedIndex === index;
@@ -421,7 +450,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
               ></Button>
             )}
           </div>
-          {/* 标题文本 - 动态透明度 */}
+
           <div
             className="roam-stack-card-title"
             style={
@@ -431,6 +460,62 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
                 "--title-opacity": string;
               }
             }
+            onContextMenu={(e) => {
+              console.log(e.button, "  = button ");
+              if (e.button === 2) {
+                e.preventDefault();
+                e.stopPropagation();
+                ContextMenu.show(
+                  <Menu>
+                    <MenuItem
+                      disabled={item.pin}
+                      text="Close"
+                      tagName="span"
+                      onClick={() => {
+                        removeTab(item.id);
+                      }}
+                    />
+                    <MenuItem
+                      text="Close Others"
+                      onClick={() => {
+                        removeOtherTabs(item.id);
+                      }}
+                      disabled={total === 1}
+                    />
+                    <MenuItem
+                      onClick={() => {
+                        removeToTheRightTabs(index);
+                      }}
+                      text="Close to the Right"
+                      disabled={index + 1 >= total}
+                    />
+                    <MenuDivider />
+                    <MenuItem
+                      onClick={() => {
+                        copyToClipboard(`[[${item.title}]]`);
+                      }}
+                      text="Copy Page Reference"
+                    />
+                    <MenuDivider />
+                    <MenuItem
+                      onClick={() => {
+                        openInSidebar(item.id);
+                      }}
+                      text="Open in Sidebar"
+                    />
+                    <MenuDivider />
+                    <MenuItem
+                      onClick={() => {
+                        togglePin(item.id);
+                      }}
+                      text={item.pin ? "Unpin" : "Pin"}
+                    />
+                  </Menu>,
+                  { left: e.clientX, top: e.clientY },
+                  () => {}
+                );
+              }
+            }}
           >
             {item.title}
           </div>
@@ -684,6 +769,36 @@ export const StackApp = (props: {
     saveAndRefreshTabs(updatedTabs, updatedCurrentTab || props.currentTab);
   };
 
+  const removeOtherTabs = (uid: string) => {
+    const updatedTabs = props.tabs.filter((tab) => tab.pin || tab.uid === uid);
+    const updatedCurrentTab = updatedTabs.find((tab) => tab.uid === uid);
+    saveAndRefreshTabs(updatedTabs, updatedCurrentTab || props.currentTab);
+  };
+
+  const removeToTheRightTabs = (index: number) => {
+    const updatedTabs = [
+      ...props.tabs.slice(0, index + 1),
+      ...props.tabs.slice(index + 1).filter((t) => t.pin),
+    ];
+    const currentIndex = updatedTabs.findIndex(
+      (t) => t.uid === props.currentTab?.uid
+    );
+    const updatedCurrentTab =
+      currentIndex === -1 || currentIndex > index
+        ? updatedTabs[index]
+        : props.currentTab;
+    saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
+  };
+
+  const openInSidebar = (uid: string) => {
+    window.roamAlphaAPI.ui.rightSidebar.addWindow({
+      window: {
+        "block-uid": uid,
+        type: "outline",
+      },
+    });
+  };
+
   return (
     <StackProvider
       tabs={props.tabs.map((tab) => ({
@@ -695,6 +810,9 @@ export const StackApp = (props: {
       active={props.currentTab?.uid}
       pageWidth={props.pageWidth}
       onTogglePin={togglePin}
+      onRemoveOtherTabs={removeOtherTabs}
+      onRemoveToTheRightTabs={removeToTheRightTabs}
+      onOpenInSidebar={openInSidebar}
     >
       <Layout />
     </StackProvider>
