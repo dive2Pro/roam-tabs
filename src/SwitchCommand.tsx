@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MenuItem, Menu, Icon } from "@blueprintjs/core";
 import { Omnibar } from "@blueprintjs/select";
-
+import ReactDOM from "react-dom/client";
 import { List, arrayMove } from "react-movable";
 import type { Tab } from "./type";
+import { focusTab, saveAndRefreshTabs, saveTabsToSettings } from "./config";
 
 export const globalSwitchCommandOperator = {
   listeners: [] as ((v: boolean) => void)[],
@@ -66,11 +67,30 @@ function highlightText(text: string, query: string) {
   return tokens;
 }
 
-export function SwitchCommand({
-  tabs,
-  onTabSelect,
-  onTabSorted,
-}: SwitchCommandProps) {
+const ElParent = document.body;
+const El = "roam-tabs-switch-el";
+
+let el: HTMLElement | null = null;
+export function renderSwitchCommand(tabs: Tab[], currentTab?: Tab) {
+  if (!el) {
+    el = document.createElement("div");
+    el.className = El;
+    ElParent.appendChild(el);
+  }
+  ReactDOM.createRoot(el).render(
+    <SwitchCommand
+      tabs={tabs}
+      onTabSorted={(newTabs) => {
+        saveAndRefreshTabs(newTabs, currentTab);
+      }}
+      onTabSelect={(tab) => {
+        focusTab(tab.uid);
+      }}
+    />
+  );
+}
+
+function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
   const [state, setState] = useState({
     open: false,
   });

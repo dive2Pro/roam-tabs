@@ -24,7 +24,6 @@ import {
 } from "./config";
 import type { Tab } from "./type";
 import type { RoamExtensionAPI } from "roam-types";
-import { SwitchCommand } from "./SwitchCommand";
 import { useOnUidWillChange } from "./hooks/useOnUidChangeElementClicked";
 import { useEvent } from "./hooks/useEvent";
 
@@ -222,15 +221,6 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
           );
         })}
       </div>
-      <SwitchCommand
-        tabs={tabs}
-        onTabSorted={(newTabs) => {
-          saveAndRefreshTabs(newTabs, currentTab);
-        }}
-        onTabSelect={(tab) => {
-          focusTabFromConfig(tab.uid);
-        }}
-      />
     </>
   );
 }

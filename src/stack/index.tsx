@@ -2,8 +2,7 @@ import ReactDOM from "react-dom/client";
 import type { Tab } from "../type";
 import { StackApp } from "./Context";
 import { ReactNode } from "react";
-import { SwitchCommand } from "../SwitchCommand";
-import { focusTab, saveAndRefreshTabs } from "../config";
+
 const ElParent = "roam-main";
 const El = "roam-stack-container";
 let root: ReactDOM.Root | null = null;
@@ -70,15 +69,6 @@ export const renderApp = (
   root.render(
     <App>
       <StackApp pageWidth={pageWidth} tabs={tabs} currentTab={currentTab} />
-      <SwitchCommand
-        tabs={tabs}
-        onTabSelect={(tab) => {
-          focusTab(tab.uid);
-        }}
-        onTabSorted={(tabs) => {
-          saveAndRefreshTabs(tabs, currentTab);
-        }}
-      />
     </App>
   );
 

@@ -5,7 +5,10 @@ import { RoamExtensionAPI } from "roam-types";
 import { renderApp } from "./stack";
 import { renderHorizontalApp } from "./extension";
 import { extension_helper } from "./helper";
-import { globalSwitchCommandOperator } from "./SwitchCommand";
+import {
+  globalSwitchCommandOperator,
+  renderSwitchCommand,
+} from "./SwitchCommand";
 
 const Keys = {
   Auto: "Auto",
@@ -210,6 +213,7 @@ const renderAppForConfig = () => {
     const activeTab = { ...(loadTabsFromSettings()?.activeTab || undefined) };
     renderHorizontalApp(tabs, activeTab);
     renderStackApp();
+    renderSwitchCommand(tabs, activeTab);
   }, 10);
 };
 
