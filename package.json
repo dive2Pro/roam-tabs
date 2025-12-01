@@ -7,9 +7,6 @@
     "build": "tsc && vite build"
   },
   "license": "MIT",
-  "dependencies": {
-    "react-move": "^6.5.0"
-  },
   "devDependencies": {
     "@blueprintjs/core": "3.54.0",
     "@blueprintjs/select": "3.19.1",
@@ -45,5 +42,8 @@
   "roam": {
     "id": "hyc-roam-template",
     "icon": "./favicon.png"
+  },
+  "dependencies": {
+    "react-movable": "^3.4.1"
   }
 }
