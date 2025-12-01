@@ -5,6 +5,7 @@ import { useEvent } from "./useEvent";
 let listeners: ((uid?: string) => void)[] = [];
 export function useOnUidWillChange(callback: (uid?: string) => void) {
   const cb = useEvent(callback);
+  console.log("useOnUidWillChange: ", cb);
   useEffect(() => {
     listeners.push(cb);
     return () => {
@@ -53,7 +54,7 @@ function observeElementClicked() {
     const hash = url.hash;
     const regex = new RegExp(`/${window.roamAlphaAPI.graph.name}/page/(.+)`);
     const result = regex.exec(hash);
-    // console.log("before to: ", e, result, regex, listeners);
+    console.log("before to: ", e, result, regex, listeners);
     if (result) {
       listeners.forEach((callback) => {
         callback(result[1]);

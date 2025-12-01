@@ -3,8 +3,9 @@ import { ClientConfig } from "./ClientConfig";
 import type { CacheTab, Tab } from "./type";
 import { RoamExtensionAPI } from "roam-types";
 import { renderApp } from "./stack";
-import { initExtension } from "./extension";
+import { renderHorizontalApp } from "./extension";
 import { extension_helper } from "./helper";
+import { globalSwitchCommandOperator } from "./SwitchCommand";
 
 const Keys = {
   Auto: "Auto",
@@ -28,7 +29,7 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
     },
   });
   extensionAPI.ui.commandPalette.addCommand({
-    label: "Tabs: Change to Stack Mode",
+    label: "Roam Tabs: Change to Stack Mode",
     callback: () => {
       API.settings.set(Keys.TabMode, "stack");
       renderAppForConfig();
@@ -36,11 +37,11 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
   });
   extension_helper.on_uninstall(() => {
     extensionAPI.ui.commandPalette.removeCommand({
-      label: "Tabs: Change to Horizontal Mode",
+      label: "Roam Tabs: Change to Horizontal Mode",
     });
 
     extensionAPI.ui.commandPalette.removeCommand({
-      label: "Tabs: Change to Stack Mode",
+      label: "Roam Tabs: Change to Stack Mode",
     });
   });
 
@@ -142,6 +143,55 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
         : []),
     ],
   });
+  API.ui.commandPalette.addCommand({
+    label: "Roam Tabs: Switch Tab...",
+    callback() {
+      globalSwitchCommandOperator.open();
+    },
+  });
+  API.ui.commandPalette.addCommand({
+    label: "Roam Tabs: Close Current Tab",
+    callback: () => {
+      const currentTab = loadTabsFromSettings()?.activeTab;
+      if (currentTab) {
+        removeTab(currentTab.uid);
+      }
+    },
+  });
+  API.ui.commandPalette.addCommand({
+    label: "Roam Tabs: Close Other Tabs",
+    callback: () => {
+      const currentTab = loadTabsFromSettings()?.activeTab;
+      if (currentTab) {
+        removeOtherTabs(currentTab.uid);
+      }
+    },
+  });
+  API.ui.commandPalette.addCommand({
+    label: "Roam Tabs: Close to the right",
+    callback: () => {
+      const currentTab = loadTabsFromSettings()?.activeTab;
+      if (!currentTab) {
+        return;
+      }
+      const index = loadTabsFromSettings()?.tabs.findIndex(
+        (v) => v.uid === currentTab.uid
+      );
+      if (index === -1) {
+        return;
+      }
+      removeToTheRightTabs(index);
+    },
+  });
+  API.ui.commandPalette.addCommand({
+    label: "Roam Tabs: Pin",
+    callback: () => {
+      const currentTab = loadTabsFromSettings()?.activeTab;
+      if (currentTab) {
+        toggleTabPin(currentTab.uid);
+      }
+    },
+  });
   renderAppForConfig();
 }
 
@@ -156,7 +206,9 @@ export function getStackPageWidth(): number {
 const renderAppForConfig = () => {
   setTimeout(() => {
     toggleAppClass();
-    initExtension(API);
+    const tabs = [...(loadTabsFromSettings()?.tabs || [])];
+    const activeTab = { ...(loadTabsFromSettings()?.activeTab || undefined) };
+    renderHorizontalApp(tabs, activeTab);
     renderStackApp();
   }, 10);
 };
@@ -168,7 +220,6 @@ const renderStackApp = () => {
 
     renderApp(
       API.settings.get(Keys.TabMode),
-      API,
       tabs,
       activeTab,
       getStackPageWidth()
@@ -277,21 +328,36 @@ function saveTabsForClientToSettings(tabs: Tab[]): void {
 
 export function saveAndRefreshTabs(tabs: Tab[], activeTab?: Tab): void {
   saveTabsToSettings(tabs, activeTab);
-  renderStackApp();
+  renderAppForConfig();
 }
 
 export function removeTab(tabUid: string): void {
   const cacheTab = loadTabsFromSettings();
   const tabs = cacheTab?.tabs || [];
-  const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
-  if (cacheTab?.activeTab?.uid !== tabUid) {
-    saveTabsToSettings(newTabs, cacheTab?.activeTab);
-    renderStackApp();
+  const tab = tabs.find((tab) => tab.uid === tabUid);
+  if (!tab) {
     return;
   }
-  const activeTab = newTabs.length ? newTabs[newTabs.length - 1] : undefined;
-  saveTabsToSettings(newTabs, activeTab);
-  renderStackApp();
+  const index = tabs.findIndex((tab) => tab.uid === tabUid);
+
+  if (tab.pin) {
+    // find first unpin tab
+    const unpinTabIndex = tabs.findIndex((tab) => !tab.pin);
+    if (unpinTabIndex > -1) {
+      saveAndRefreshTabs(tabs, tabs[unpinTabIndex]);
+    }
+    return;
+  }
+
+  const newTabs = tabs.filter((tab) => tab.uid !== tabUid);
+  if (cacheTab?.activeTab?.uid !== tabUid) {
+    saveAndRefreshTabs(newTabs, cacheTab?.activeTab);
+    return;
+  }
+  const activeTab = newTabs.length
+    ? newTabs[Math.min(index, newTabs.length - 1)]
+    : undefined;
+  saveAndRefreshTabs(newTabs, activeTab);
   setTimeout(() => {
     console.log(` next active `, newTabs, activeTab);
     if (!activeTab) {
@@ -312,8 +378,7 @@ export function focusOnPageTab(uid: string) {
   const tabIndex = tabs.findIndex((tab) => tab.uid === uid);
   if (tabIndex > -1) {
     tabs[tabIndex].blockUid = uid;
-    saveTabsToSettings(tabs, tabs[tabIndex]);
-    renderStackApp();
+    saveAndRefreshTabs(tabs, tabs[tabIndex]);
   }
 }
 export function focusTab(uid: string) {
@@ -321,14 +386,60 @@ export function focusTab(uid: string) {
   const tabs = cacheTab?.tabs || [];
   const tabIndex = tabs.findIndex((tab) => tab.uid === uid);
   if (tabIndex > -1) {
-    saveTabsToSettings(tabs, tabs[tabIndex]);
-    renderStackApp();
+    saveAndRefreshTabs(tabs, tabs[tabIndex]);
     window.roamAlphaAPI.ui.mainWindow.openBlock({
       block: {
         uid: tabs[tabIndex].blockUid || tabs[tabIndex].uid,
       },
     });
   }
+}
+
+export function removeOtherTabs(uid: string): void {
+  const cacheTab = loadTabsFromSettings();
+  const tabs = cacheTab?.tabs || [];
+  const lastTab = tabs.find((tab) => tab.uid === uid);
+  if (!lastTab) {
+    return;
+  }
+  const newTabs = tabs.filter((tab) => tab.pin || tab.uid === uid);
+  saveAndRefreshTabs(newTabs, lastTab);
+}
+
+export function removeToTheRightTabs(index: number): void {
+  const cacheTab = loadTabsFromSettings();
+  const tabs = cacheTab?.tabs || [];
+  const newTabs = [
+    ...tabs.slice(0, index + 1),
+    ...tabs.slice(index + 1).filter((t) => t.pin),
+  ];
+  const currentIndex = newTabs.findIndex(
+    (t) => t.uid === cacheTab?.activeTab?.uid
+  );
+  const activeTab =
+    currentIndex === -1 || currentIndex > index
+      ? newTabs[index]
+      : cacheTab?.activeTab;
+  saveAndRefreshTabs(newTabs, activeTab);
+}
+
+export function toggleTabPin(uid: string): void {
+  const cacheTab = loadTabsFromSettings();
+  const tabs = cacheTab?.tabs || [];
+  const updatedTabs = tabs.map((tab) =>
+    tab.uid === uid ? { ...tab, pin: !tab.pin } : tab
+  );
+  // Sort: pinned tabs first
+  const sortedTabs = [
+    ...updatedTabs.filter((t) => t.pin),
+    ...updatedTabs.filter((t) => !t.pin),
+  ];
+  const updatedCurrentTab =
+    sortedTabs.find((tab) => tab.uid === uid) ||
+    (cacheTab?.activeTab?.uid === uid
+      ? { ...cacheTab.activeTab, pin: !cacheTab.activeTab.pin }
+      : cacheTab?.activeTab);
+  saveAndRefreshTabs(sortedTabs, updatedCurrentTab);
 }
 
 export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {

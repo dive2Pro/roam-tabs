@@ -1,16 +1,13 @@
 import ReactDOM from "react-dom/client";
 import type { Tab } from "../type";
 import { StackApp } from "./Context";
-import { extension_helper } from "../helper";
 import { ReactNode } from "react";
 import { SwitchCommand } from "../SwitchCommand";
-import { RoamExtensionAPI } from "roam-types";
 import { focusTab, saveAndRefreshTabs } from "../config";
 const ElParent = "roam-main";
 const El = "roam-stack-container";
 let root: ReactDOM.Root | null = null;
 let el: HTMLElement | null = null;
-let diagramObserver: MutationObserver | null = null;
 
 const onStackModeShow = () => {
   // console.log("onStackModeShow");
@@ -28,19 +25,6 @@ const onStackModeHide = () => {
   }
 };
 
-async function isUnderSpecificPage() {
-  const pageOrBlockUid =
-    await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-  if (!pageOrBlockUid) {
-    return false;
-  }
-  const hash = window.location.hash;
-  const regex = new RegExp(
-    `/${window.roamAlphaAPI.graph.name}/page/${pageOrBlockUid}$`
-  );
-  return regex.test(hash);
-}
-
 export const resetStackModeShowingState = async (currentTab?: Tab) => {
   if (!currentTab) {
     onStackModeHide();
@@ -51,7 +35,6 @@ export const resetStackModeShowingState = async (currentTab?: Tab) => {
 
 export const renderApp = (
   mode: string,
-  extensionAPI: RoamExtensionAPI,
   tabs: Tab[],
   currentTab: Tab,
   pageWidth: number
@@ -89,7 +72,6 @@ export const renderApp = (
       <StackApp pageWidth={pageWidth} tabs={tabs} currentTab={currentTab} />
       <SwitchCommand
         tabs={tabs}
-        API={extensionAPI}
         onTabSelect={(tab) => {
           focusTab(tab.uid);
         }}

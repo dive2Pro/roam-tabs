@@ -13,9 +13,14 @@ import {
 import { copyToClipboard, extension_helper } from "./helper";
 import {
   isAutoOpenNewTab,
-  loadTabsFromSettings,
-  saveTabsToSettings,
   isStackMode,
+  saveAndRefreshTabs,
+  removeTab as removeTabFromConfig,
+  removeOtherTabs as removeOtherTabsFromConfig,
+  removeToTheRightTabs as removeToTheRightTabsFromConfig,
+  toggleTabPin as toggleTabPinFromConfig,
+  focusTab as focusTabFromConfig,
+  loadTabsFromSettings,
 } from "./config";
 import type { Tab } from "./type";
 import type { RoamExtensionAPI } from "roam-types";
@@ -37,7 +42,9 @@ function debounce(fn: Function, ms = 500) {
 }
 let root: ReactDOM.Root | null = null;
 let el: HTMLElement | null = null;
-const _mount = async () => {
+let forceUpdate = () => {};
+
+const mount = async (tabs: Tab[], currentTab?: Tab) => {
   const roamMain = document.querySelector(".roam-main");
   el = roamMain.querySelector("." + clazz);
   const roamBodyMain = roamMain.querySelector(".roam-body-main");
@@ -47,11 +54,10 @@ const _mount = async () => {
     el.className = clazz;
     roamMain.insertBefore(el, roamBodyMain);
     root = ReactDOM.createRoot(el);
-    root.render(<App />);
+    root.render(<App tabs={tabs} currentTab={currentTab} />);
   } else {
-    forceUpdate();
+    root?.render(<App tabs={tabs} currentTab={currentTab} />);
   }
-  saveTabsToSettings(tabs, currentTab);
   // scroll to active button
   setTimeout(() => {
     const rbm = document.querySelector(".rm-article-wrapper");
@@ -71,123 +77,27 @@ const _mount = async () => {
   }, 100);
 };
 
-const mount = debounce(_mount, 150);
-
-let currentTab: Tab | undefined;
-
-let tabs: Tab[] = [];
-const setTabs = (newTab: Tab) => {
-  const change = (prev: Tab[]) => {
-    const index = prev.findIndex((tab) => tab.uid === newTab.uid);
-    if (ctrlKeyPressed || isAutoOpenNewTab()) {
-      if (index === -1) {
-        return [...prev, newTab];
-      } else {
-        prev[index] = newTab;
-        return [...prev];
-      }
-    }
-    if (prev.length === 0) {
-      return [newTab];
-    }
-
-    if (index !== -1) {
-      prev[index] = newTab;
-      return prev;
-    }
-
-    if (!currentTab) {
-      setCurrentTab(newTab);
-      return [...prev, newTab];
-    }
-    const i = prev.findIndex((tab) => currentTab.uid === tab.uid);
-    prev[i] = newTab;
-    // console.log(currentTab, i, prev);
-
-    return [...prev];
-  };
-  // console.log("---change: ", JSON.stringify(tabs))
-  tabs = change(tabs);
-};
-export const removeTab = (uid: string) => {
-  const tab = tabs.find((tab) => tab.uid === uid);
-  if (!tab) {
-    return;
-  }
-  const index = tabs.findIndex((tab) => tab.uid === uid);
-
-  if (tab.pin) {
-    // find first unpin tab
-    const unpinTabIndex = tabs.findIndex((tab) => !tab.pin);
-    if (unpinTabIndex > -1) {
-      setCurrentTab(tabs[unpinTabIndex]);
-    }
-    return;
-  }
-
-  tabs = tabs.filter((tab) => tab.uid !== uid);
-  if (currentTab?.uid === uid) {
-    setCurrentTab(tabs[Math.min(index, tabs.length - 1)]);
-  }
-  mount();
-};
-
-const removeCurrentTab = () => {
-  currentTab && removeTab(currentTab.uid);
-};
-
-const removeOtherTbas = (lastTab: Tab) => {
-  tabs = [...tabs.filter((v) => v.pin || v.uid === lastTab.uid)];
-  setCurrentTab(lastTab);
-  mount();
-};
-
-const removeToTheRightTabs = (index: number) => {
-  tabs = [
-    ...tabs.slice(0, index + 1),
-    ...tabs.slice(index + 1).filter((t) => t.pin),
-  ];
-  const currentIndex = tabs.findIndex((t) => t.uid === currentTab?.uid);
-  if (currentIndex === -1 || currentIndex > index) {
-    setCurrentTab(tabs[index]);
-  }
-  mount();
-};
-
-const setCurrentTab = (v?: Tab) => {
-  console.log("setCurrentTab: ", v);
-  if (v) {
-    const oldTab = tabs.find((tab) => tab.uid === v.uid);
-    currentTab = {
-      ...oldTab,
-      ...v,
-    };
-  } else {
-    currentTab = v;
-  }
-  if (!v) return;
-  // 如果发现 v.blockUid 已经不在该页面下, 修改 tab 的 blockUid = pageUid
-  const targetUid = getUidExitsInPage(v);
-  v.blockUid = targetUid;
-
-  // openUid(targetUid);
-};
-
 let routeChanging = false;
-let forceUpdate = () => {};
 
-let draggingTab: Tab;
+let draggingTab: Tab | undefined;
 
 const setDraggingTab = (dragging?: Tab) => {
   draggingTab = dragging;
   forceUpdate();
 };
-function App() {
+
+function App(props: { tabs: Tab[]; currentTab?: Tab }) {
+  const { tabs, currentTab } = props;
+  console.log({ currentTab });
+
   forceUpdate = useReducer((i) => i + 1, 0)[1];
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
     if (uid) {
-      const oldTab = tabs.find((tab) => tab.uid === uid);
+      const cacheTab = loadTabsFromSettings();
+      const currentTabs = cacheTab?.tabs || [];
+      const oldTab = currentTabs.find((tab) => tab.uid === uid);
       let oldCtrlKeyPressed = ctrlKeyPressed;
+
       if (currentTab?.pin) {
         ctrlKeyPressed = true;
       }
@@ -197,13 +107,53 @@ function App() {
         title,
         blockUid,
       };
-      setTabs(newTab);
-      setCurrentTab(newTab);
+
+      // 如果发现 newTab.blockUid 已经不在该页面下, 修改 tab 的 blockUid = pageUid
+      const targetUid = getUidExitsInPage(newTab);
+      newTab.blockUid = targetUid;
+
+      const index = currentTabs.findIndex((tab) => tab.uid === newTab.uid);
+      let updatedTabs: Tab[];
+      let updatedCurrentTab: Tab | undefined;
+
+      if (ctrlKeyPressed || isAutoOpenNewTab()) {
+        if (index === -1) {
+          updatedTabs = [...currentTabs, newTab];
+        } else {
+          updatedTabs = currentTabs.map((t) =>
+            t.uid === newTab.uid ? newTab : t
+          );
+        }
+        updatedCurrentTab = newTab;
+      } else {
+        if (currentTabs.length === 0) {
+          updatedTabs = [newTab];
+          updatedCurrentTab = newTab;
+        } else if (index !== -1) {
+          updatedTabs = currentTabs.map((t) =>
+            t.uid === newTab.uid ? newTab : t
+          );
+          updatedCurrentTab = newTab;
+        } else if (!currentTab) {
+          updatedTabs = [...currentTabs, newTab];
+          updatedCurrentTab = newTab;
+        } else {
+          const i = currentTabs.findIndex((tab) => currentTab.uid === tab.uid);
+          if (i !== -1) {
+            updatedTabs = currentTabs.map((t, idx) => (idx === i ? newTab : t));
+            updatedCurrentTab = newTab;
+          } else {
+            updatedTabs = currentTabs;
+            updatedCurrentTab = currentTab;
+          }
+        }
+      }
+
+      saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
       ctrlKeyPressed = oldCtrlKeyPressed;
     } else {
-      setCurrentTab();
+      saveAndRefreshTabs(tabs, undefined);
     }
-    mount();
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
     ctrlKeyPressed = e.ctrlKey || e.metaKey;
@@ -215,7 +165,7 @@ function App() {
       const rbm = document.querySelector(".rm-article-wrapper");
 
       scrollTop$ = rbm.scrollTop;
-      if (!routeChanging) recordPosition();
+      if (!routeChanging) recordPosition(tabs, currentTab);
     };
     const rbm = document.querySelector(".rm-article-wrapper");
     if (!rbm) {
@@ -226,19 +176,17 @@ function App() {
     return () => {
       rbm.removeEventListener("scroll", onScroll);
     };
-  }, []);
+  }, [tabs, currentTab]);
   useOnUidWillChange((uid) => {
     console.log("useOnUidWillChange: ", uid);
     if (!uid) {
-      setCurrentTab();
-      mount();
+      saveAndRefreshTabs(tabs, undefined);
       return;
     }
     const pageUid = getPageUidByUid(uid);
     const title = getPageTitleByUid(pageUid);
     onChange(pageUid, title, uid);
   });
-  console.log({ currentTab });
 
   useEffect(() => {
     document.addEventListener("pointerdown", onPointerdown);
@@ -257,65 +205,30 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    API.ui.commandPalette.addCommand({
-      label: "Close Current Tab",
-      callback: () => {
-        removeCurrentTab();
-      },
-    });
-
-    API.ui.commandPalette.addCommand({
-      label: "Close Other Tabs",
-      callback: () => {
-        removeOtherTbas(currentTab);
-      },
-    });
-
-    API.ui.commandPalette.addCommand({
-      label: "Close to the right",
-      callback: () => {
-        if (!currentTab) {
-          return;
-        }
-        const index = tabs.findIndex((v) => v.uid === currentTab.uid);
-        if (index === -1) {
-          return;
-        }
-        removeToTheRightTabs(index);
-      },
-    });
-    API.ui.commandPalette.addCommand({
-      label: "Pin",
-      callback: () => {
-        if (!currentTab) {
-          return;
-        }
-        toggleTabPin(currentTab);
-      },
-    });
-  }, [currentTab]);
-
   return (
     <>
       <div className="roam-tabs-container">
         {tabs.map((tab, index) => {
           const active = tab.uid === currentTab?.uid;
           return (
-            <AppTab key={tab.uid} active={active} index={index} tab={tab} />
+            <AppTab
+              key={tab.uid}
+              active={active}
+              index={index}
+              tab={tab}
+              tabs={tabs}
+              currentTab={currentTab}
+            />
           );
         })}
       </div>
       <SwitchCommand
         tabs={tabs}
-        API={API}
         onTabSorted={(newTabs) => {
-          tabs = newTabs;
-          mount();
+          saveAndRefreshTabs(newTabs, currentTab);
         }}
         onTabSelect={(tab) => {
-          setCurrentTab(tab);
-          mount();
+          focusTabFromConfig(tab.uid);
         }}
       />
     </>
@@ -326,13 +239,15 @@ class AppTab extends Component<{
   active: boolean;
   tab: Tab;
   index: number;
+  tabs: Tab[];
+  currentTab?: Tab;
 }> {
   state = {
     className: "",
   };
 
   render() {
-    const { active, tab, index } = this.props;
+    const { active, tab, index, tabs, currentTab } = this.props;
 
     return (
       <Button
@@ -354,12 +269,11 @@ class AppTab extends Component<{
           e.preventDefault();
           e.dataTransfer.effectAllowed = "move";
           if (draggingTab) {
-            if (tab.pin) {
-              draggingTab.pin = true;
-            } else {
-              draggingTab.pin = false;
-            }
-            swapTab(tab, draggingTab);
+            const updatedDraggingTab = {
+              ...draggingTab,
+              pin: tab.pin,
+            };
+            swapTab(tab, updatedDraggingTab, tabs, currentTab);
           }
         }}
         data-dragging={draggingTab === tab}
@@ -375,19 +289,19 @@ class AppTab extends Component<{
                 text="Close"
                 tagName="span"
                 onClick={() => {
-                  removeTab(tab.uid);
+                  removeTabFromConfig(tab.uid);
                 }}
               />
               <MenuItem
                 text="Close Others"
                 onClick={() => {
-                  removeOtherTbas(tab);
+                  removeOtherTabsFromConfig(tab.uid);
                 }}
                 disabled={tabs.length === 1}
               />
               <MenuItem
                 onClick={() => {
-                  removeToTheRightTabs(index);
+                  removeToTheRightTabsFromConfig(index);
                 }}
                 text="Close to the Right"
                 disabled={index + 1 >= tabs.length}
@@ -409,7 +323,7 @@ class AppTab extends Component<{
               <MenuDivider />
               <MenuItem
                 onClick={() => {
-                  toggleTabPin(tab);
+                  toggleTabPinFromConfig(tab.uid);
                 }}
                 text={tab.pin ? "Unpin" : "Pin"}
               />
@@ -436,8 +350,7 @@ class AppTab extends Component<{
               onClickCapture={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleTabPin(tab);
-                mount();
+                toggleTabPinFromConfig(tab.uid);
               }}
             />
           ) : (
@@ -448,8 +361,7 @@ class AppTab extends Component<{
               onClickCapture={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                removeTab(tab.uid);
-                mount();
+                removeTabFromConfig(tab.uid);
               }}
             />
           )
@@ -512,28 +424,26 @@ function getPageTitleByUid(uid: string) {
 
 let API: RoamExtensionAPI;
 
-export function initExtension(extensionAPI: RoamExtensionAPI) {
-  API = extensionAPI;
-
+export function renderHorizontalApp(tabs: Tab[], currentTab?: Tab) {
   // 检查是否是 stack mode
   if (isStackMode()) {
     if (root) {
       root.unmount();
+      root = null;
     }
 
     if (el) {
       el.remove();
+      el = null;
     }
     return;
   }
+  console.log("renderHorizontalApp: ", tabs, currentTab);
+  mount(tabs, currentTab);
+}
 
-  // 如果是 stack mode，正常初始化
-  const cacheConfig = loadTabsFromSettings();
-  if (cacheConfig) {
-    setCurrentTab(cacheConfig.activeTab);
-    tabs = cacheConfig.tabs;
-  }
-  mount();
+export function initExtension(extensionAPI: RoamExtensionAPI) {
+  API = extensionAPI;
   extension_helper.on_uninstall(() => {
     document.querySelector(`.${clazz}`)?.remove();
   });
@@ -547,40 +457,34 @@ function openInSidebar(uid: string) {
     },
   });
 }
-function recordPosition() {
+function recordPosition(tabs: Tab[], currentTab?: Tab) {
   if (currentTab && currentTab.scrollTop !== scrollTop$) {
-    currentTab.scrollTop = scrollTop$;
+    const updatedCurrentTab = { ...currentTab, scrollTop: scrollTop$ };
     const tab = tabs.find((tab) => tab.uid === currentTab.uid);
-    if (tab) tab.scrollTop = scrollTop$;
+    if (tab) {
+      const updatedTabs = tabs.map((t) =>
+        t.uid === currentTab.uid ? { ...t, scrollTop: scrollTop$ } : t
+      );
+      saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
+    }
   }
 }
 
-const swapTab = debounce((tab: Tab, draggingTab: Tab) => {
-  const index1 = tabs.findIndex((t) => t.uid === tab.uid);
-  const index2 = tabs.findIndex((t) => t.uid === draggingTab.uid);
-  tabs.splice(index2, 1);
-  tabs = [...tabs.slice(0, index1), draggingTab, ...tabs.slice(index1)];
-  // tabs[index1] = draggingTab;
-  // tabs[index2] = tab;
-  // sortTabByPin();
-  // console.log(tabs, ' swapped')
-  // mount();
-  forceUpdate();
-  saveTabsToSettings(tabs, currentTab);
-}, 10);
-
-function sortTabByPin() {
-  tabs = [...tabs.filter((t) => t.pin), ...tabs.filter((t) => !t.pin)];
-}
-
-function toggleTabPin(tab: Tab) {
-  tab.pin = !tab.pin;
-  if (currentTab?.uid === tab.uid) {
-    currentTab.pin = tab.pin;
-  }
-  sortTabByPin();
-  mount();
-}
+const swapTab = debounce(
+  (tab: Tab, draggingTab: Tab, tabs: Tab[], currentTab?: Tab) => {
+    const index1 = tabs.findIndex((t) => t.uid === tab.uid);
+    const index2 = tabs.findIndex((t) => t.uid === draggingTab.uid);
+    const newTabs = [...tabs];
+    newTabs.splice(index2, 1);
+    const swappedTabs = [
+      ...newTabs.slice(0, index1),
+      draggingTab,
+      ...newTabs.slice(index1),
+    ];
+    saveAndRefreshTabs(swappedTabs, currentTab);
+  },
+  10
+);
 function getUidExitsInPage(v: Tab) {
   return !!window.roamAlphaAPI.q(`
   [

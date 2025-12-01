@@ -101,7 +101,6 @@ export function ClientConfig({
     );
     setSelectedPages(newSelectedPages);
     onSave(newSelectedPages);
-    debugger;
   };
 
   const handleClear = () => {

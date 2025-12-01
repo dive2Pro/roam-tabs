@@ -4,11 +4,29 @@ import { Omnibar } from "@blueprintjs/select";
 
 import { List, arrayMove } from "react-movable";
 import type { Tab } from "./type";
-import type { RoamExtensionAPI } from "roam-types";
+
+export const globalSwitchCommandOperator = {
+  listeners: [] as ((v: boolean) => void)[],
+  isOpen: false,
+  open: () => {
+    globalSwitchCommandOperator.isOpen = true;
+    globalSwitchCommandOperator.listeners.forEach((l) => l(true));
+  },
+  close: () => {
+    globalSwitchCommandOperator.isOpen = false;
+    globalSwitchCommandOperator.listeners.forEach((l) => l(false));
+  },
+  listen: (callback: (v: boolean) => void) => {
+    globalSwitchCommandOperator.listeners.push(callback);
+    return () => {
+      globalSwitchCommandOperator.listeners =
+        globalSwitchCommandOperator.listeners.filter((l) => l !== callback);
+    };
+  },
+};
 
 type SwitchCommandProps = {
   tabs: Tab[];
-  API: RoamExtensionAPI;
   onTabSelect: (tab: Tab) => void;
   onTabSorted: (tabs: Tab[]) => void;
 };
@@ -50,14 +68,17 @@ function highlightText(text: string, query: string) {
 
 export function SwitchCommand({
   tabs,
-  API,
   onTabSelect,
   onTabSorted,
 }: SwitchCommandProps) {
   const [state, setState] = useState({
     open: false,
   });
-
+  useEffect(() => {
+    return globalSwitchCommandOperator.listen((v) => {
+      setState({ open: v });
+    });
+  }, []);
   // 用于存储过滤后的项目列表，支持拖拽排序
   const [filteredItems, setFilteredItems] = useState<Tab[]>([]);
 
@@ -75,17 +96,6 @@ export function SwitchCommand({
       div.remove();
     };
   }, []);
-
-  useEffect(() => {
-    API.ui.commandPalette.addCommand({
-      label: "Switch Tab...",
-      callback() {
-        setState((prev) => ({
-          open: !prev.open,
-        }));
-      },
-    });
-  }, [API]);
 
   // 当打开时选中 input 文字
   useEffect(() => {
@@ -108,7 +118,7 @@ export function SwitchCommand({
   return (
     <Omnibar
       isOpen={state.open}
-      onClose={() => setState({ open: false })}
+      onClose={() => globalSwitchCommandOperator.close()}
       items={tabs}
       itemPredicate={(query, item) => {
         return item.title.toLowerCase().includes(query.toLowerCase());
@@ -124,7 +134,7 @@ export function SwitchCommand({
       }}
       onItemSelect={(item) => {
         onTabSelect(item);
-        setState({ open: false });
+        globalSwitchCommandOperator.close();
       }}
       itemListRenderer={(itemListProps) => {
         // 当过滤项变化时，同步更新 filteredItems
@@ -235,7 +245,7 @@ export function SwitchCommand({
                   }}
                   onClick={() => {
                     onTabSelect(value);
-                    setState({ open: false });
+                    globalSwitchCommandOperator.close();
                   }}
                 >
                   <span>{highlightText(value.title, itemListProps.query)}</span>
