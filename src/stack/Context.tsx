@@ -6,7 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { Tab } from "../type";
-import { Button } from "@blueprintjs/core";
+import { Button, Icon } from "@blueprintjs/core";
 import {
   focusOnPageTab,
   focusTab,
@@ -26,6 +26,7 @@ type PageItem = {
   id: string;
   title: string;
   blockUid: string;
+  pin: boolean;
 };
 
 type StackContextType = {
@@ -40,6 +41,7 @@ type StackContextType = {
   pageWidth: number;
   foldOffset: number;
   titleTriggerOffset: number;
+  togglePin: (uid: string) => void;
 };
 
 /* ===========================================================================
@@ -72,6 +74,7 @@ type StackProviderProps = {
   tabs: PageItem[];
   active: string;
   pageWidth: number;
+  onTogglePin: (uid: string) => void;
 };
 
 const StackProvider = ({
@@ -79,6 +82,7 @@ const StackProvider = ({
   tabs,
   active,
   pageWidth,
+  onTogglePin,
 }: StackProviderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
@@ -243,6 +247,9 @@ const StackProvider = ({
             focusPage(index);
           }
         },
+        togglePin: (uid: string) => {
+          onTogglePin(uid);
+        },
       }}
     >
       {children}
@@ -271,6 +278,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
     pageWidth,
     foldOffset,
     titleTriggerOffset,
+    togglePin,
   } = context;
   const isObstructed = index < total - 1;
   const isFocused = focusedIndex === index;
@@ -375,43 +383,47 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         <div
           className="roam-stack-card-spine"
           style={{
-            //   position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
             width: `${CONSTANTS.SPINE_WIDTH}px`,
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            //   justifyContent: "center",
-            writingMode: "vertical-rl",
-            color: "#666",
-            fontWeight: "bold",
-            letterSpacing: "2px",
-            borderRight: "1px solid rgba(0,0,0,0.05)",
-            background: "rgba(255,255,255,0.5)",
-            pointerEvents: "none",
+            lineHeight: `${CONSTANTS.SPINE_WIDTH}px`,
           }}
         >
-          {/* 关闭按钮 - 始终可见 */}
+          {/* 关闭按钮和 Pin 按钮 - 始终可见 */}
           <div
             style={{
               pointerEvents: "auto",
               opacity: 1,
               marginBottom: "10px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "5px",
             }}
           >
-            <Button
-              icon="cross"
-              minimal
-              onClick={(e) => {
-                e.stopPropagation();
-                removeTab(item.id);
-              }}
-            ></Button>
+            {item.pin ? (
+              <Button
+                minimal
+                intent={item.pin ? "primary" : undefined}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const { togglePin } = context;
+                  togglePin(item.id);
+                }}
+              >
+                <Icon icon="pin" color={item.pin ? undefined : "#ABB3BF"} />
+              </Button>
+            ) : (
+              <Button
+                icon="cross"
+                minimal
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeTab(item.id);
+                }}
+              ></Button>
+            )}
           </div>
           {/* 标题文本 - 动态透明度 */}
           <div
+            className="roam-stack-card-title"
             style={
               {
                 opacity: "var(--title-opacity)",
@@ -664,15 +676,25 @@ export const StackApp = (props: {
     };
   }, []);
 
+  const togglePin = (uid: string) => {
+    const updatedTabs = props.tabs.map((tab) =>
+      tab.uid === uid ? { ...tab, pin: !tab.pin } : tab
+    );
+    const updatedCurrentTab = updatedTabs.find((tab) => tab.uid === uid);
+    saveAndRefreshTabs(updatedTabs, updatedCurrentTab || props.currentTab);
+  };
+
   return (
     <StackProvider
       tabs={props.tabs.map((tab) => ({
         id: tab.uid,
         title: tab.title,
         blockUid: tab.blockUid,
+        pin: tab.pin,
       }))}
       active={props.currentTab?.uid}
       pageWidth={props.pageWidth}
+      onTogglePin={togglePin}
     >
       <Layout />
     </StackProvider>

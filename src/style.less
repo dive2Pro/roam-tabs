@@ -67,6 +67,26 @@
     .rm-streak {
       overflow: auto;
     }
+    .roam-stack-card-title {
+      line-height: inherit;
+      flex: 1;
+    }
+    .roam-stack-card-spine {
+      left: 0;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      writing-mode: vertical-rl;
+      color: #666;
+      font-weight: bold;
+      letter-spacing: 2px;
+      border-right: 1px solid rgba(0,0,0,0.05);
+      background: rgba(255,255,255,0.5);
+      pointer-events: none;
+
+    };
     .roam-stack-card-focused .roam-stack-card-spine {
       box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));
     }

@@ -1,7 +1,7 @@
 import React, { Component, useReducer } from "react";
 import ReactDOM from "react-dom/client";
 import "./style.less";
-const { useEffect, useState, useCallback, useRef, useLayoutEffect } = React;
+const { useEffect } = React;
 import {
   Button,
   Icon,
@@ -207,12 +207,11 @@ function App() {
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
     ctrlKeyPressed = e.ctrlKey || e.metaKey;
-    const rbm = document.querySelector(".rm-article-wrapper");
     // console.log(scrollTop$, ' ---global')
   });
 
   useEffect(() => {
-    const onScroll = (e: Event) => {
+    const onScroll = () => {
       const rbm = document.querySelector(".rm-article-wrapper");
 
       scrollTop$ = rbm.scrollTop;
