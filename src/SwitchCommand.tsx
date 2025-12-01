@@ -178,7 +178,7 @@ export function SwitchCommand({
                     ...props.style,
                     overflowY: "scroll",
                     overflowX: "hidden",
-                    maxHeight: 600,
+                    maxHeight: 500,
                     cursor: isDragged ? "grabbing" : undefined,
                   }}
                 >

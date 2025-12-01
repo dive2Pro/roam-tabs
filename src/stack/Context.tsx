@@ -11,10 +11,12 @@ import {
   focusOnPageTab,
   focusTab,
   getStackPageWidth,
+  isAutoOpenNewTab,
   removeTab,
   saveAndRefreshTabs,
 } from "../config";
-import { resetStackModeShowingState } from ".";
+
+import { useOnUidWillChange } from "../hooks/useOnUidChangeElementClicked";
 // import { removeTab } from "../extension";
 
 /* ===========================================================================
@@ -426,7 +428,7 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         <div
           onPointerDown={(e) => {
             const target = e.target as HTMLElement;
-            console.log(target, " --- ");
+
             if (target.classList.contains("rm-page-ref")) {
               const linkUid = target
                 .closest("[data-link-uid]")
@@ -560,55 +562,108 @@ const Layout = () => {
   );
 };
 
+// 全局变量跟踪 Ctrl/Cmd 键状态
+let ctrlKeyPressed = false;
+
 export const StackApp = (props: {
   tabs: Tab[];
   currentTab: Tab;
   pageWidth: number;
 }) => {
-  useEffect(() => {
-    const onRouteChange = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      const pageOrBlockUid =
-        await window.roamAlphaAPI.ui.mainWindow.getOpenPageOrBlockUid();
-      resetStackModeShowingState();
-      if (!pageOrBlockUid) {
-        return;
-      }
-      let pageData = (await window.roamAlphaAPI.data.async.q(
-        `[:find [?e ?t]  :where [?b :block/uid "${pageOrBlockUid}"] [?b :block/page ?p]
-         [?p :block/uid ?e]
-         [?p :node/title ?t]
-        ]`
-      )) as unknown as null | [string, string];
-      let blockUid = pageOrBlockUid;
-      if (!pageData) {
-        const title = (await window.roamAlphaAPI.data.async.q(
-          `[:find ?t . :where [?b :block/uid "${pageOrBlockUid}"] [?b :node/title ?t]
-          ]`
-        )) as unknown as string;
-        pageData = [pageOrBlockUid, title];
-      }
+  useOnUidWillChange(async (uid) => {
+    if (!uid) {
+      // 清空聚焦的页面
+      saveAndRefreshTabs(props.tabs, undefined);
+      return;
+    }
 
-      const [pageUid, title] = pageData;
-      if (props.tabs.find((tab) => tab.uid === pageUid)) {
-        const index = props.tabs.findIndex((tab) => tab.uid === pageUid);
-        props.tabs[index].blockUid = blockUid;
-        saveAndRefreshTabs(props.tabs, props.tabs[index]);
-        return;
-      }
-      //   if (isAutoOpenNewTab()) {
+    const pageOrBlockUid = uid;
+
+    if (!pageOrBlockUid) {
+      return;
+    }
+    let pageData = (await window.roamAlphaAPI.data.async.q(
+      `[:find [?e ?t]  :where [?b :block/uid "${pageOrBlockUid}"] [?b :block/page ?p]
+     [?p :block/uid ?e]
+     [?p :node/title ?t]
+    ]`
+    )) as unknown as null | [string, string];
+    let blockUid = pageOrBlockUid;
+    if (!pageData) {
+      const title = (await window.roamAlphaAPI.data.async.q(
+        `[:find ?t . :where [?b :block/uid "${pageOrBlockUid}"] [?b :node/title ?t]
+      ]`
+      )) as unknown as string;
+      pageData = [pageOrBlockUid, title];
+    }
+
+    const [pageUid, title] = pageData;
+    const existingTabIndex = props.tabs.findIndex((tab) => tab.uid === pageUid);
+
+    // 如果标签页已存在，更新它
+    if (existingTabIndex !== -1) {
+      const updatedTabs = [...props.tabs];
+      updatedTabs[existingTabIndex] = {
+        ...updatedTabs[existingTabIndex],
+        blockUid,
+      };
+      saveAndRefreshTabs(updatedTabs, updatedTabs[existingTabIndex]);
+      return;
+    }
+
+    // 如果当前标签页是 pinned 的，自动创建新标签页（类似于 horizontal 模式）
+    const shouldCreateNewTab =
+      ctrlKeyPressed || isAutoOpenNewTab() || props.currentTab?.pin;
+
+    // console.log({
+    //   shouldCreateNewTab,
+    //   ctrlKeyPressed,
+    //   isAutoOpenNewTab: isAutoOpenNewTab(),
+    //   pin: props.currentTab?.pin,
+    // });
+    // 标签页不存在，根据 Ctrl/Cmd 键、Auto 模式和 pinned 状态决定行为
+    if (shouldCreateNewTab) {
+      // 创建新标签页
       const newTab = { uid: pageUid, title, blockUid, pin: false };
       const tabs = [...props.tabs, newTab];
-
       saveAndRefreshTabs(tabs, newTab);
+    } else {
+      // 不创建新标签页，根据情况处理
+      if (props.tabs.length === 0) {
+        // 如果标签列表为空，创建新标签页
+        const newTab = { uid: pageUid, title, blockUid, pin: false };
+        saveAndRefreshTabs([newTab], newTab);
+      } else if (!props.currentTab) {
+        // 如果当前没有标签页，创建新标签页并设置为当前标签页
+        const newTab = { uid: pageUid, title, blockUid, pin: false };
+        const tabs = [...props.tabs, newTab];
+        saveAndRefreshTabs(tabs, newTab);
+      } else {
+        // 否则，更新当前标签页（替换当前标签页的内容）
+        const updatedTabs = props.tabs.map((tab) =>
+          tab.uid === props.currentTab.uid
+            ? { uid: pageUid, title, blockUid, pin: tab.pin }
+            : tab
+        );
+        const updatedCurrentTab = updatedTabs.find(
+          (tab) => tab.uid === pageUid
+        ) || { uid: pageUid, title, blockUid, pin: false };
+        saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
+      }
+    }
+  });
+  // 检测 Ctrl/Cmd 键按下
+  useEffect(() => {
+    const onPointerdown = (e: PointerEvent) => {
+      ctrlKeyPressed = e.ctrlKey || e.metaKey;
     };
 
-    window.addEventListener("hashchange", onRouteChange);
-
+    document.addEventListener("pointerdown", onPointerdown);
     return () => {
-      window.removeEventListener("hashchange", onRouteChange);
+      document.removeEventListener("pointerdown", onPointerdown);
     };
-  }, [props.tabs, props.currentTab]);
+  }, []);
+
   return (
     <StackProvider
       tabs={props.tabs.map((tab) => ({

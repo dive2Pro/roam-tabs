@@ -20,16 +20,11 @@ import {
 import type { Tab } from "./type";
 import type { RoamExtensionAPI } from "roam-types";
 import { SwitchCommand } from "./SwitchCommand";
+import { useOnUidWillChange } from "./hooks/useOnUidChangeElementClicked";
+import { useEvent } from "./hooks/useEvent";
 
 const clazz = "roam-tabs";
 let scrollTop$ = 0;
-
-const delay = (ms = 10) =>
-  new Promise((resolve) =>
-    setTimeout(() => {
-      resolve(1);
-    }, ms)
-  );
 
 function debounce(fn: Function, ms = 500) {
   let timer = setTimeout(() => {}, 0);
@@ -62,42 +57,6 @@ const _mount = async () => {
     const rbm = document.querySelector(".rm-article-wrapper");
     rbm.scrollTop = currentTab?.scrollTop || 0;
 
-    function scrollIntoActiveTab() {
-      const activeEl = document.querySelector(
-        ".roam-tab-active"
-      ) as HTMLElement;
-      const parentEl = activeEl?.parentElement;
-      if (!activeEl || !parentEl) {
-        return;
-      }
-
-      const childRect = activeEl.getBoundingClientRect();
-      const parentRect = parentEl.getBoundingClientRect();
-      const itemLeft = activeEl.offsetLeft - parentRect.left;
-      const itemRight = itemLeft + childRect.width;
-      const scrollLeft = parentEl.scrollLeft;
-      // const containerRight = containerLeft + childRect.width;
-
-      // 假如滑动的距离不足以展示完全的: activeEl
-      // 条件:
-      //  containerLeft < itemLeft + childRect.width  -> containerLeft = itemLeft + childRect.width
-
-      // console.log(scrollLeft, itemLeft, childRect, parentRect, activeEl);
-
-      if (scrollLeft < itemLeft) {
-        parentEl.scroll({
-          left: itemLeft,
-        });
-      } else if (scrollLeft + parentRect.width < itemLeft) {
-        parentEl.scroll({
-          left: itemLeft,
-        });
-      } else if (scrollLeft + parentRect.width > itemRight) {
-        parentEl.scroll({
-          left: itemRight,
-        });
-      }
-    }
     // scrollIntoActiveTab();
     makeActiveTabMoveIntoVersion();
     function makeActiveTabMoveIntoVersion() {
@@ -196,6 +155,7 @@ const removeToTheRightTabs = (index: number) => {
 };
 
 const setCurrentTab = (v?: Tab) => {
+  console.log("setCurrentTab: ", v);
   if (v) {
     const oldTab = tabs.find((tab) => tab.uid === v.uid);
     currentTab = {
@@ -205,21 +165,19 @@ const setCurrentTab = (v?: Tab) => {
   } else {
     currentTab = v;
   }
-  // 如果发现 v.blockUid 已经不在该页面下, 改为打开 page uid
   if (!v) return;
+  // 如果发现 v.blockUid 已经不在该页面下, 修改 tab 的 blockUid = pageUid
   const targetUid = getUidExitsInPage(v);
-  openUid(targetUid);
+  v.blockUid = targetUid;
+
+  // openUid(targetUid);
 };
 
 let routeChanging = false;
 let forceUpdate = () => {};
 
 let draggingTab: Tab;
-let draggingTargetTab: Tab;
-const setDraggingTargetTab = (dragging?: Tab) => {
-  draggingTargetTab = dragging;
-  forceUpdate();
-};
+
 const setDraggingTab = (dragging?: Tab) => {
   draggingTab = dragging;
   forceUpdate();
@@ -270,32 +228,18 @@ function App() {
       rbm.removeEventListener("scroll", onScroll);
     };
   }, []);
-  const onRouteChange = useEvent(async (e: HashChangeEvent) => {
-    routeChanging = true;
-    await new Promise((resolve) => {
-      setTimeout(resolve, 100);
-    });
-    const index = location.href.indexOf("/page/");
-    const uid = e.newURL.split("/").pop();
-
-    if (index === -1) {
+  useOnUidWillChange((uid) => {
+    console.log("useOnUidWillChange: ", uid);
+    if (!uid) {
       setCurrentTab();
       mount();
-      routeChanging = false;
       return;
     }
     const pageUid = getPageUidByUid(uid);
     const title = getPageTitleByUid(pageUid);
     onChange(pageUid, title, uid);
-    routeChanging = false;
   });
-  useEffect(() => {
-    window.addEventListener("hashchange", onRouteChange);
-
-    return () => {
-      window.removeEventListener("hashchange", onRouteChange);
-    };
-  }, []);
+  console.log({ currentTab });
 
   useEffect(() => {
     document.addEventListener("pointerdown", onPointerdown);
@@ -480,8 +424,8 @@ class AppTab extends Component<{
             openInSidebar(tab.uid);
             return;
           }
-          setCurrentTab(tab);
-          mount();
+          console.log("onClick: ", tab);
+          openUid(tab.blockUid);
         }}
         rightIcon={
           tab.pin ? (
@@ -530,23 +474,10 @@ class AppTab extends Component<{
     );
   }
 }
-
-function useEvent(handler: Function) {
-  const handlerRef = useRef(null);
-
-  // In a real implementation, this would run before layout effects
-  useLayoutEffect(() => {
-    handlerRef.current = handler;
-  });
-
-  return useCallback((...args: any[]) => {
-    // In a real implementation, this would throw if called during render
-    const fn = handlerRef.current;
-    return fn(...args);
-  }, []);
-}
+// Moved to src/hooks/useEvent.ts
 
 const openUid = (uid: string) => {
+  console.log("openUid: ", uid);
   window.roamAlphaAPI.ui.mainWindow.openBlock({
     block: {
       uid: uid,

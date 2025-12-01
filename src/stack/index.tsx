@@ -13,7 +13,7 @@ let el: HTMLElement | null = null;
 let diagramObserver: MutationObserver | null = null;
 
 const onStackModeShow = () => {
-  console.log("onStackModeShow");
+  // console.log("onStackModeShow");
   const el = document.querySelector(`.${El}`);
   if (el) {
     el.classList.remove("roam-stack-container-hide");
@@ -21,7 +21,7 @@ const onStackModeShow = () => {
 };
 
 const onStackModeHide = () => {
-  console.log("onStackModeHide");
+  // console.log("onStackModeHide");
   const el = document.querySelector(`.${El}`);
   if (el) {
     el.classList.add("roam-stack-container-hide");
@@ -41,8 +41,8 @@ async function isUnderSpecificPage() {
   return regex.test(hash);
 }
 
-export const resetStackModeShowingState = async () => {
-  if (!(await isUnderSpecificPage())) {
+export const resetStackModeShowingState = async (currentTab?: Tab) => {
+  if (!currentTab) {
     onStackModeHide();
   } else {
     onStackModeShow();
@@ -56,10 +56,10 @@ export const renderApp = (
   currentTab: Tab,
   pageWidth: number
 ) => {
-  console.log("renderApp", mode, tabs, currentTab, el, root, {
-    pageWidth,
-  });
-  resetStackModeShowingState();
+  // console.log("renderApp", mode, tabs, currentTab, el, root, {
+  //   pageWidth,
+  // });
+  resetStackModeShowingState(currentTab);
   if (mode !== "stack") {
     if (root) {
       root.unmount();
