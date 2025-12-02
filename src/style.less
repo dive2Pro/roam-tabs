@@ -43,10 +43,10 @@
 }
 
 .roam-body .roam-app .roam-body-main {
-    flex: 0 0 calc(100% - 75px);
-    &:has(.roam-stack-container) {
-      flex: 0 0 calc(100% - 45px);
-    }
+  flex: 0 0 calc(100% - 75px);
+  &:has(.roam-stack-container) {
+    flex: 0 0 calc(100% - 45px);
+  }
 }
 
 .roam-stack {
@@ -83,13 +83,13 @@
       color: #666;
       font-weight: bold;
       letter-spacing: 2px;
-      border-right: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.5);
+      border-right: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.5);
 
       .bp3-button-text {
         display: contents;
       }
-    };
+    }
     .roam-stack-card-focused .roam-stack-card-spine {
       box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));
     }
@@ -99,7 +99,7 @@
       }
     }
   }
- 
+
   &-card {
     &:has(.excalidraw-textEditorContainer) {
       z-index: 2;
@@ -123,11 +123,76 @@
 }
 
 .roam-tabs-switch-el {
-   &.show {
+  &.show {
     position: absolute;
     z-index: 1000;
-   }
-    * {
+  }
+  * {
     display: block;
-   }
+  }
+}
+
+/* 指示器容器 */
+.roam-stack-minimap {
+  position: absolute;
+  bottom: 60px;
+  right: 20px;
+  z-index: 2; /* 确保在最上层 */
+
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px); /* 毛玻璃效果 */
+
+  /* 限制最大宽度，防止 tab 太多时太长 */
+  max-width: 250px;
+  padding: 6px;
+  box-sizing: border-box;
+
+  /* Minimap 背景预览 */
+  .roam-stack-minimap-preview {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none; /* 让点击穿透到 container */
+    opacity: 0.5;
+  }
+
+  /* 单个方块 (代表一个 Panel) */
+  .minimap-block {
+    flex-shrink: 0;
+    height: 24px;
+    background-color: #ffd8c9; /* 浅橙色 (未选中) */
+    border-radius: 4px;
+    min-width: 4px;
+  }
+
+  /* Minimap 滑块 (高亮视口) */
+  .minimap-thumb {
+    position: absolute;
+    left: 6px;
+    height: 100%;
+    top: 0;
+    background-color: rgba(0, 123, 255, 0.2);
+    border: 2px solid #007bff;
+    box-sizing: border-box;
+    border-radius: 4px;
+    cursor: grab;
+    z-index: 10;
+    pointer-events: auto;
+    transition: transform 0.1s ease;
+  }
+
+  .minimap-thumb:active {
+    cursor: grabbing;
+    background-color: rgba(0, 123, 255, 0.3);
+    transition: none; /* 拖拽时禁用过渡 */
+  }
 }
