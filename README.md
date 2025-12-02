@@ -14,6 +14,7 @@ Stack Mode is an alternative display mode for tabs that provides a unique visual
 - **Visual Stacking**: Pages overlap each other, creating a visual stack effect where you can see multiple pages at once
 - **Spine Navigation**: Click on the vertical spine (edge) of any page to focus and scroll to that page
 - **Horizontal Scrolling**: Scroll horizontally to navigate through your open tabs
+- **Minimap Navigation**: A visual minimap appears at the bottom-right corner showing all open pages as blocks. The blue thumb indicates your current viewport position. You can drag the thumb or click anywhere on the minimap to quickly navigate to different positions. The minimap automatically hides when all pages fit within the viewport
 - **Page Width Configuration**: Customize the width of each page in Stack Mode (default: 650px) through the extension settings
 
 ### How to Enable Stack Mode
@@ -28,7 +29,12 @@ Stack Mode is an alternative display mode for tabs that provides a unique visual
 - **Navigate**: Scroll horizontally or click on a page's spine to focus on it
 - **Close Tabs**: Click the close button (×) on the spine of any page
 - **Switch Pages**: Click on the spine or content area of a page to make it active
-- **Scroll Indicator**: A shadow indicator appears on the right edge when there are more pages to scroll to
+- **Minimap Navigation**:
+  - The minimap displays at the bottom-right corner showing all your open pages as colored blocks
+  - The blue thumb (slider) represents your current viewport position
+  - **Drag the thumb** to scroll through pages smoothly
+  - **Click anywhere on the minimap** to jump to that position instantly
+  - The minimap automatically hides when all pages are visible (no scrolling needed)
 
 Stack Mode is particularly useful when you want to see multiple pages at once and prefer a more visual, spatial way of managing your tabs.
 
