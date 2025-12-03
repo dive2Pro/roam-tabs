@@ -14,7 +14,8 @@ Stack Mode is an alternative display mode for tabs that provides a unique visual
 - **Visual Stacking**: Pages overlap each other, creating a visual stack effect where you can see multiple pages at once
 - **Spine Navigation**: Click on the vertical spine (edge) of any page to focus and scroll to that page
 - **Horizontal Scrolling**: Scroll horizontally to navigate through your open tabs
-- **Minimap Navigation**: A visual minimap appears at the bottom-right corner showing all open pages as blocks. The blue thumb indicates your current viewport position. You can drag the thumb or click anywhere on the minimap to quickly navigate to different positions. The minimap automatically hides when all pages fit within the viewport
+- **Foldable Pages**: Fold pages to their spine to save space. You can fold/unfold individual pages or all pages at once.
+- **Minimap Navigation**: A visual minimap appears at the bottom-right corner showing all open pages as blocks. You can drag the thumb or click anywhere on the minimap to quickly navigate to different positions. The minimap automatically hides when all pages fit within the viewport
 - **Page Width Configuration**: Customize the width of each page in Stack Mode (default: 650px) through the extension settings
 
 ### How to Enable Stack Mode
@@ -27,10 +28,11 @@ Stack Mode is an alternative display mode for tabs that provides a unique visual
 ### Using Stack Mode
 
 - **Navigate**: Scroll horizontally or click on a page's spine to focus on it
+- **Fold/Unfold**: Click the chevron icon on a page's spine to fold/unfold it. Right-click the title to access "Fold All" / "Unfold All" options.
 - **Close Tabs**: Click the close button (×) on the spine of any page
 - **Switch Pages**: Click on the spine or content area of a page to make it active
 - **Minimap Navigation**:
-  - The minimap displays at the bottom-right corner showing all your open pages as colored blocks
+  - The minimap displays at the bottom-right corner showing all your open pages as colored blocks. **The active tab is highlighted.**
   - The blue thumb (slider) represents your current viewport position
   - **Drag the thumb** to scroll through pages smoothly
   - **Click anywhere on the minimap** to jump to that position instantly
