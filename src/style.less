@@ -72,6 +72,7 @@
       // flex: 1;
       cursor: pointer;
       opacity: var(--title-opacity);
+
     }
     .roam-stack-card-spine {
       left: 0;
@@ -124,6 +125,8 @@
     }
     .roam-stack-card-focused .roam-stack-card-spine {
       box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));
+      transition: transform 0.3s ease,
+        box-shadow 0.3s ease;
     }
     &:has(.excalidraw-textEditorContainer) {
       .roam-stack-scroll-indicator {
@@ -204,10 +207,13 @@
   .minimap-block {
     flex-shrink: 0;
     height: 24px;
-    background-color: #ffd8c9; /* 浅橙色 (未选中) */
+    background-color: #cacaca; /* 浅橙色 (未选中) */
     border-radius: 4px;
     min-width: 4px;
     flex: 1;
+    &.minimap-block-focused {
+      background-color: var(--primary-color, #106ba3);
+    }
   }
 
   /* Minimap 滑块 (高亮视口) */
@@ -216,19 +222,20 @@
     left: 6px;
     height: 100%;
     top: 0;
-    background-color: rgba(0, 123, 255, 0.2);
-    border: 2px solid #007bff;
+    background-color: #fdffff33;
+    box-shadow: inset 0px 0px 5px 0px #1080cf;
     box-sizing: border-box;
     border-radius: 4px;
     cursor: grab;
     z-index: 10;
     pointer-events: auto;
     transition: transform 0.1s ease;
+    border: 1px solid rgba(66, 153, 225, 0.6);
   }
 
   .minimap-thumb:active {
     cursor: grabbing;
-    background-color: rgba(0, 123, 255, 0.3);
+    
     transition: none; /* 拖拽时禁用过渡 */
   }
 }

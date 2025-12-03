@@ -731,7 +731,7 @@ const Minimap = () => {
   if (!context) {
     throw new Error("Minimap must be used within StackProvider");
   }
-  const { stack, containerRef, pageWidth, collapsedNonce } = context;
+  const { stack, containerRef, pageWidth, collapsedNonce, focusedIndex } = context;
   const minimapTrackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -928,11 +928,13 @@ const Minimap = () => {
     >
       {/* Minimap 背景预览 */}
       <div className="roam-stack-minimap-preview">
-        {stack.map((item) => {
+        {stack.map((item, index) => {
           return (
             <div
               key={item.id}
-              className="minimap-block"
+              className={`minimap-block ${
+                index === focusedIndex ? "minimap-block-focused" : ""
+              }`}
             />
           );
         })}
