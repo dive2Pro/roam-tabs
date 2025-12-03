@@ -4,6 +4,7 @@ import React, {
   useContext,
   ReactNode,
   useEffect,
+  useState,
 } from "react";
 import { Tab } from "../type";
 import {
@@ -13,6 +14,9 @@ import {
   Menu,
   MenuItem,
   MenuDivider,
+  Popover,
+  PopoverInteractionKind,
+  Position,
 } from "@blueprintjs/core";
 import {
   focusOnPageTab,
@@ -21,6 +25,7 @@ import {
   isAutoOpenNewTab,
   removeTab,
   saveAndRefreshTabs,
+  setCollapsedUids,
 } from "../config";
 import { copyToClipboard } from "../helper";
 
@@ -53,6 +58,11 @@ type StackContextType = {
   removeOtherTabs: (uid: string) => void;
   removeToTheRightTabs: (index: number) => void;
   openInSidebar: (uid: string) => void;
+  isCollapsed: (uid: string) => boolean;
+  toggleCollapsed: (uid: string) => void;
+  collapsedNonce: number;
+  foldAll: () => void;
+  unfoldAll: () => void;
 };
 
 /* ===========================================================================
@@ -89,6 +99,7 @@ type StackProviderProps = {
   onRemoveOtherTabs: (uid: string) => void;
   onRemoveToTheRightTabs: (index: number) => void;
   onOpenInSidebar: (uid: string) => void;
+  initialCollapsedUids?: string[];
 };
 
 const StackProvider = ({
@@ -100,6 +111,7 @@ const StackProvider = ({
   onRemoveOtherTabs,
   onRemoveToTheRightTabs,
   onOpenInSidebar,
+  initialCollapsedUids,
 }: StackProviderProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
@@ -108,6 +120,26 @@ const StackProvider = ({
   const activeIndex = stack.findIndex((p) => p.id === active);
   //   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const focusedIndex = activeIndex;
+  const [collapsedSet, setCollapsedSet] = useState<Set<string>>(
+    new Set(initialCollapsedUids || [])
+  );
+  const [collapsedNonce, setCollapsedNonce] = useState(0);
+
+  const isCollapsed = (uid: string) => collapsedSet.has(uid);
+
+
+  const foldAll = () => {
+    const all = new Set(stack.map((p) => p.id));
+    setCollapsedSet(all);
+    setCollapsedUids(Array.from(all));
+    setCollapsedNonce((n) => n + 1);
+  };
+
+  const unfoldAll = () => {
+    setCollapsedSet(new Set());
+    setCollapsedUids([]);
+    setCollapsedNonce((n) => n + 1);
+  };
   /**
    * 核心算法：智能滚动到指定索引
    * 目标：让该页面的左边缘，刚好紧贴着前面所有页面的"脊"
@@ -145,10 +177,14 @@ const StackProvider = ({
       }
     }
 
-    // 公式： 目标滚动位置 = 索引 * (页面宽度 - 脊宽度)
-    // 解释： 既然每个页面在折叠时都贡献了 (PageWidth - SpineWidth) 的位移，
-    //       要看第 N 页，就需要把前面 N-1 页的这部分位移都滚过去。
-    const targetScrollLeft = index * foldOffset;
+    // 动态计算：考虑主动折叠后的可视宽度
+    // 目标滚动位置 = 前面各页的 (实际宽度 - 脊宽度) 之和
+    const targetScrollLeft = stack
+      .slice(0, index)
+      .reduce((sum, p) => {
+        const w = isCollapsed(p.id) ? CONSTANTS.SPINE_WIDTH : pageWidth;
+        return sum + (w - CONSTANTS.SPINE_WIDTH);
+      }, 0);
 
     container.scrollTo({
       left: targetScrollLeft,
@@ -173,6 +209,28 @@ const StackProvider = ({
       // Fallback: 估算滚动时间（smooth 滚动通常需要 300-500ms）
       const estimatedScrollTime = 20;
       setTimeout(triggerFocusAnimation, estimatedScrollTime);
+    }
+  };
+
+  const toggleCollapsed = (uid: string) => {
+    const willExpand = collapsedSet.has(uid);
+
+    setCollapsedSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      setCollapsedUids(Array.from(next));
+      return next;
+    });
+    setCollapsedNonce((n) => n + 1);
+
+    if (willExpand) {
+      const index = stack.findIndex((p) => p.id === uid);
+      if (index > -1) {
+        setTimeout(() => {
+          scrollToPageIndex(index);
+        }, 50);
+      }
     }
   };
 
@@ -242,6 +300,11 @@ const StackProvider = ({
     setTimeout(updateScrollMetrics, 100);
   }, [stack.length]);
 
+  // 主动折叠状态变化后更新滚动/尺寸指标
+  useEffect(() => {
+    setTimeout(updateScrollMetrics, 0);
+  }, [collapsedSet]);
+
   useEffect(() => {
     scrollToPageIndex(activeIndex);
   }, [activeIndex]);
@@ -276,6 +339,11 @@ const StackProvider = ({
         openInSidebar: (uid: string) => {
           onOpenInSidebar(uid);
         },
+        isCollapsed,
+        toggleCollapsed,
+        collapsedNonce,
+        foldAll,
+        unfoldAll,
       }}
     >
       {children}
@@ -286,6 +354,90 @@ const StackProvider = ({
 /* ===========================================================================
  * 5. 页面组件
  * =========================================================================== */
+
+const StackPageMenu = ({
+  item,
+  index,
+  total,
+  context,
+}: {
+  item: PageItem;
+  index: number;
+  total: number;
+  context: StackContextType;
+}) => {
+  const {
+    foldAll,
+    unfoldAll,
+    removeOtherTabs,
+    removeToTheRightTabs,
+    openInSidebar,
+    togglePin,
+  } = context;
+
+  return (
+    <Menu>
+      <MenuItem
+        onClick={() => {
+          togglePin(item.id);
+        }}
+        text={item.pin ? "Unpin" : "Pin"}
+      />
+      <MenuItem
+        disabled={item.pin}
+        text="Close"
+        tagName="span"
+        onClick={() => {
+          removeTab(item.id);
+        }}
+      />
+      <MenuItem
+        text="Close Others"
+        onClick={() => {
+          removeOtherTabs(item.id);
+        }}
+        disabled={total === 1}
+      />
+      <MenuItem
+        onClick={() => {
+          removeToTheRightTabs(index);
+        }}
+        text="Close to the Right"
+        disabled={index + 1 >= total}
+      />
+      <MenuDivider />
+      <MenuItem
+        onClick={() => {
+          copyToClipboard(`[[${item.title}]]`);
+        }}
+        text="Copy Page Reference"
+      />
+      <MenuDivider />
+      <MenuItem
+        onClick={() => {
+          openInSidebar(item.id);
+        }}
+        text="Open in Sidebar"
+      />
+      <MenuDivider />
+
+      <MenuItem
+        text="Fold All"
+        onClick={() => {
+          foldAll();
+        }}
+      />
+      <MenuItem
+        text="Unfold All"
+        onClick={() => {
+          unfoldAll();
+        }}
+      />
+      <MenuDivider />
+    </Menu>
+  );
+};
+
 type PageCardProps = {
   item: PageItem;
   index: number;
@@ -309,16 +461,24 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
     removeOtherTabs,
     removeToTheRightTabs,
     openInSidebar,
+    isCollapsed,
+    toggleCollapsed,
+    foldAll,
+    unfoldAll,
   } = context;
   const isObstructed = index < total - 1;
   const isFocused = focusedIndex === index;
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const collapsed = isCollapsed(item.id);
   useEffect(() => {
     setTimeout(async () => {
       await window.roamAlphaAPI.ui.components.unmountNode({
         el: contentRef.current,
       });
+      if (collapsed) {
+        return;
+      }
       if (item.blockUid !== item.id) {
         window.roamAlphaAPI.ui.components.renderBlock({
           el: contentRef.current,
@@ -334,21 +494,28 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         uid: item.id,
       });
     }, 50);
-  }, [item.id, item.blockUid]);
+  }, [item.id, item.blockUid, collapsed]);
 
   // --- 1. 基础折叠点 ---
   // 页面 sticky 吸附的时刻
-  const foldStart = index * foldOffset;
+  const dynamicFoldOffsets = (idx: number) => {
+    return context.stack.slice(0, idx).reduce((sum, p) => {
+      const w = isCollapsed(p.id) ? CONSTANTS.SPINE_WIDTH : pageWidth;
+      return sum + (w - CONSTANTS.SPINE_WIDTH);
+    }, 0);
+  };
+  const foldStart = dynamicFoldOffsets(index);
 
   // --- 2. 标题触发点 (关键修改) ---
   // foldStart 是页面刚刚 sticky 住的时刻 (此时可见宽度 = 650px)
   // 我们加上 TITLE_TRIGGER_OFFSET (550px)，表示右边页面已经盖过来 550px 了
   // 此时可见宽度 = 100px。从这一刻开始，标题才允许出现。
-  const titleTriggerPoint = foldStart + titleTriggerOffset;
+  const cardWidth = collapsed ? CONSTANTS.SPINE_WIDTH : pageWidth;
+  const titleTriggerPoint = foldStart + (cardWidth - CONSTANTS.TITLE_SHOW_AT);
 
   // --- 3. 阴影触发点 ---
   // 当我(index)开始覆盖前一页(index-1)时
-  const overlapStart = (index - 1) * foldOffset;
+  const overlapStart = dynamicFoldOffsets(Math.max(index - 1, 0));
 
   return (
     <div
@@ -369,7 +536,9 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
         }
         focusPage(index);
       }}
-      className={`roam-stack-card `}
+      className={`roam-stack-card ${
+        collapsed ? "roam-stack-card-collapsed" : ""
+      }`}
       style={
         {
           // 传递给 CSS
@@ -386,13 +555,15 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
             index === 0
               ? "0"
               : `clamp(0, (var(--scroll-x) - var(--overlap-start)) / 30, 1)`,
-          width: `${pageWidth}px`,
+          width: `${cardWidth}px`,
           // 你的老朋友 sticky left
           left: `${index * CONSTANTS.SPINE_WIDTH}px`,
           //   zIndex: index,
           cursor: isObstructed ? "pointer" : "default",
           // 左侧外阴影 (覆盖在前一页上的阴影)
-          boxShadow: `
+          boxShadow: collapsed
+            ? "none"
+            : `
           -10px 0 20px -5px rgba(0,0,0, calc(0.3 * var(--shadow-opacity))),
           -30px 0 50px -10px rgba(0,0,0, calc(0.1 * var(--shadow-opacity)))
         `,
@@ -416,17 +587,14 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
             width: `${CONSTANTS.SPINE_WIDTH}px`,
             lineHeight: `${CONSTANTS.SPINE_WIDTH}px`,
           }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            toggleCollapsed(item.id);
+          }}
         >
           {/* 关闭按钮和 Pin 按钮 - 始终可见 */}
           <div
-            style={{
-              pointerEvents: "auto",
-              opacity: 1,
-              marginBottom: "10px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "5px",
-            }}
+            className="roam-stack-card-spine-buttons"
           >
             {item.pin ? (
               <Button
@@ -454,64 +622,17 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
 
           <div
             className="roam-stack-card-title"
-            style={
-              {
-                opacity: "var(--title-opacity)",
-              } as React.CSSProperties & {
-                "--title-opacity": string;
-              }
-            }
             onContextMenu={(e) => {
-              console.log(e.button, "  = button ");
               if (e.button === 2) {
                 e.preventDefault();
                 e.stopPropagation();
                 ContextMenu.show(
-                  <Menu>
-                    <MenuItem
-                      disabled={item.pin}
-                      text="Close"
-                      tagName="span"
-                      onClick={() => {
-                        removeTab(item.id);
-                      }}
-                    />
-                    <MenuItem
-                      text="Close Others"
-                      onClick={() => {
-                        removeOtherTabs(item.id);
-                      }}
-                      disabled={total === 1}
-                    />
-                    <MenuItem
-                      onClick={() => {
-                        removeToTheRightTabs(index);
-                      }}
-                      text="Close to the Right"
-                      disabled={index + 1 >= total}
-                    />
-                    <MenuDivider />
-                    <MenuItem
-                      onClick={() => {
-                        copyToClipboard(`[[${item.title}]]`);
-                      }}
-                      text="Copy Page Reference"
-                    />
-                    <MenuDivider />
-                    <MenuItem
-                      onClick={() => {
-                        openInSidebar(item.id);
-                      }}
-                      text="Open in Sidebar"
-                    />
-                    <MenuDivider />
-                    <MenuItem
-                      onClick={() => {
-                        togglePin(item.id);
-                      }}
-                      text={item.pin ? "Unpin" : "Pin"}
-                    />
-                  </Menu>,
+                  <StackPageMenu
+                    item={item}
+                    index={index}
+                    total={total}
+                    context={context}
+                  />,
                   { left: e.clientX, top: e.clientY },
                   () => {}
                 );
@@ -520,32 +641,83 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
           >
             {item.title}
           </div>
+          {collapsed && (
+            <Popover
+              content={<div className="roam-stack-popover-content">Expand page</div>}
+              interactionKind={PopoverInteractionKind.HOVER}
+              position={Position.RIGHT}
+              target={
+                <Button
+                  minimal
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleCollapsed(item.id);
+                  }}
+                  className="roam-stack-expand-btn"
+                >
+                  <Icon icon={"chevron-right"} />
+                </Button>
+              }
+            />
+          )}
         </div>
 
         {/* 内容 */}
         <div
-          onPointerDown={(e) => {
-            if (e.button !== 0) return;
-            const target = e.target as HTMLElement;
-            if (target.classList.contains("rm-page-ref")) {
-              const linkUid = target
-                .closest("[data-link-uid]")
-                ?.getAttribute("data-link-uid");
-              if (linkUid) {
-                focusPageByUid(linkUid);
-              }
-              return;
-            }
-            focusTab(item.id);
-          }}
+          className="roam-stack-card-main"
           style={{
-            padding: "20px",
-            paddingLeft: `40px`,
-            overflow: "auto",
-            width: pageWidth - CONSTANTS.SPINE_WIDTH,
+            display: collapsed ? "none" : "flex",
+            width: Math.max(cardWidth - CONSTANTS.SPINE_WIDTH, 0),
           }}
-          ref={contentRef}
-        ></div>
+        >
+          <div
+            className="roam-stack-card-header"
+          >
+            <Popover
+              content={<div className="roam-stack-popover-content">Collapse page</div>}
+              interactionKind={PopoverInteractionKind.HOVER}
+              position={Position.BOTTOM}
+              target={
+                <Button
+                  minimal
+                  icon="chevron-left"
+                  small
+                  onClick={() => toggleCollapsed(item.id)}
+                />
+              }
+            />
+            <Popover
+              content={
+                <StackPageMenu
+                  item={item}
+                  index={index}
+                  total={total}
+                  context={context}
+                />
+              }
+              position={Position.BOTTOM_RIGHT}
+              target={<Button minimal icon="more" small />}
+            />
+          </div>
+          <div
+            onPointerDown={(e) => {
+              if (e.button !== 0) return;
+              const target = e.target as HTMLElement;
+              if (target.classList.contains("rm-page-ref")) {
+                const linkUid = target
+                  .closest("[data-link-uid]")
+                  ?.getAttribute("data-link-uid");
+                if (linkUid) {
+                  focusPageByUid(linkUid);
+                }
+                return;
+              }
+              focusTab(item.id);
+            }}
+            className="roam-stack-card-body"
+            ref={contentRef}
+          ></div>
+        </div>
       </div>
     </div>
   );
@@ -559,7 +731,7 @@ const Minimap = () => {
   if (!context) {
     throw new Error("Minimap must be used within StackProvider");
   }
-  const { stack, containerRef, pageWidth } = context;
+  const { stack, containerRef, pageWidth, collapsedNonce } = context;
   const minimapTrackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -740,7 +912,7 @@ const Minimap = () => {
       container.removeEventListener("scroll", handleViewportScroll);
       window.removeEventListener("resize", updateDimensions);
     };
-  }, [stack.length]);
+  }, [stack.length, collapsedNonce]);
 
   if (stack.length === 0) return null;
 
@@ -761,10 +933,6 @@ const Minimap = () => {
             <div
               key={item.id}
               className="minimap-block"
-              style={{
-                flex: 1,
-                minWidth: "4px",
-              }}
             />
           );
         })}
@@ -790,12 +958,7 @@ const Layout = () => {
   const { stack, containerRef, handleScroll, hintRef } = context;
   return (
     <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-      }}
+      className="roam-stack-layout"
     >
       {/* <header
         style={{
@@ -838,16 +1001,9 @@ const Layout = () => {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="roam-stacks-container"
+        className="roam-stacks-container roam-stack-layout-container"
         style={
           {
-            flex: 1,
-            display: "flex",
-            overflowX: "auto",
-            overflowY: "hidden",
-            scrollBehavior: "smooth",
-            // 移除 paddingRight 以保证精确控制边界
-            paddingRight: 0,
             "--scroll-x": "0",
             "--scroll-max": "0",
           } as React.CSSProperties & {
@@ -858,19 +1014,10 @@ const Layout = () => {
       >
         {stack.length === 0 && (
           <div
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+            className="roam-stack-empty-state"
           >
             <div
-              style={{
-                fontSize: "20px",
-                color: "#666",
-              }}
+              className="roam-stack-empty-text"
             >
               No tabs
             </div>
@@ -896,6 +1043,7 @@ export const StackApp = (props: {
   tabs: Tab[];
   currentTab: Tab;
   pageWidth: number;
+  collapsedUids?: string[];
 }) => {
   useOnUidWillChange(async (uid) => {
     if (!uid) {
@@ -1043,6 +1191,7 @@ export const StackApp = (props: {
       onRemoveOtherTabs={removeOtherTabs}
       onRemoveToTheRightTabs={removeToTheRightTabs}
       onOpenInSidebar={openInSidebar}
+      initialCollapsedUids={props.collapsedUids}
     >
       <Layout />
     </StackProvider>

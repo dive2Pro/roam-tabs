@@ -221,12 +221,14 @@ const renderStackApp = () => {
   setTimeout(() => {
     const tabs = loadTabsFromSettings()?.tabs || [];
     const activeTab = loadTabsFromSettings()?.activeTab || undefined;
+    const collapsedUids = loadTabsFromSettings()?.collapsedUids || [];
 
     renderApp(
       API.settings.get(Keys.TabMode),
       tabs,
       activeTab,
-      getStackPageWidth()
+      getStackPageWidth(),
+      collapsedUids
     );
   });
 };
@@ -453,9 +455,11 @@ export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
     return;
   }
 
+  const prev = loadTabsFromSettings();
   const cacheTab: CacheTab = {
     tabs,
     ...(activeTab && { activeTab }),
+    collapsedUids: prev?.collapsedUids || [],
   };
 
   if (isAdmin()) {
@@ -474,4 +478,32 @@ export function saveTabsToSettings(tabs: Tab[], activeTab?: Tab): void {
 
 export function isStackMode(): boolean {
   return API.settings.get(Keys.TabMode) === "stack";
+}
+
+export function getCollapsedUids(): string[] {
+  return loadTabsFromSettings()?.collapsedUids || [];
+}
+
+export function setCollapsedUids(uids: string[]): void {
+  const uid = userUid();
+  if (!uid) return;
+  const prev = loadTabsFromSettings() || { tabs: [] };
+  const cacheTab: CacheTab = {
+    tabs: prev.tabs || [],
+    ...(prev.activeTab && { activeTab: prev.activeTab }),
+    collapsedUids: uids,
+  };
+  if (isAdmin()) {
+    API.settings.set(getSettingsKeyWithUser(), cacheTab);
+    renderAppForConfig();
+    return;
+  }
+  if (isClientCanSaveConfig()) {
+    try {
+      localStorage.setItem(getSettingsKeyWithUser(), JSON.stringify(cacheTab));
+      renderAppForConfig();
+    } catch (error) {
+      console.error("Failed to save collapsedUids to localStorage:", error);
+    }
+  }
 }

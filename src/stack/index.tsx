@@ -36,7 +36,8 @@ export const renderApp = (
   mode: string,
   tabs: Tab[],
   currentTab: Tab,
-  pageWidth: number
+  pageWidth: number,
+  collapsedUids: string[] = []
 ) => {
   // console.log("renderApp", mode, tabs, currentTab, el, root, {
   //   pageWidth,
@@ -68,7 +69,12 @@ export const renderApp = (
   }
   root.render(
     <App>
-      <StackApp pageWidth={pageWidth} tabs={tabs} currentTab={currentTab} />
+      <StackApp
+        pageWidth={pageWidth}
+        tabs={tabs}
+        currentTab={currentTab}
+        collapsedUids={collapsedUids}
+      />
     </App>
   );
 

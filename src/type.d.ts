@@ -17,4 +17,5 @@ export type Tab = {
 export type CacheTab = {
   tabs: Tab[];
   activeTab?: Tab;
+  collapsedUids?: string[];
 };
