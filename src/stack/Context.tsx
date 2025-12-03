@@ -686,7 +686,8 @@ const PageCard = ({ item, index, total }: PageCardProps) => {
                 />
               }
             />
-            <Popover
+            <Popover 
+              autoFocus={false} 
               content={
                 <StackPageMenu
                   item={item}
