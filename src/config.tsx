@@ -55,7 +55,7 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
         id: Keys.Auto,
         name: "Auto Mode",
         description:
-          "Automatically open links in new tabs, only works in horizontal mode",
+          "Automatically open links in new tabs",
         action: {
           type: "switch",
           onChange: (evt: { target: { checked: boolean } }) => {
