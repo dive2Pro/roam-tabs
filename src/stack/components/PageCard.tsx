@@ -199,6 +199,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
                     index={index}
                     total={total}
                     context={context}
+                    isCollapsed={collapsed}
                   />,
                   { left: e.clientX, top: e.clientY },
                   () => {}
@@ -210,7 +211,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
           </div>
           {collapsed && (
             <Popover
-              content={<div className="roam-stack-popover-content">Expand page</div>}
+              content={<div className="roam-stack-popover-content">Unfold tab</div>}
               interactionKind={PopoverInteractionKind.HOVER}
               position={Position.RIGHT}
               target={
@@ -222,7 +223,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
                   }}
                   className="roam-stack-expand-btn"
                 >
-                  <Icon icon={"chevron-right"} />
+                  <Icon icon={"menu-open"} />
                 </Button>
               }
             />
@@ -245,13 +246,13 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
             } : null}
           >
             <Popover
-              content={<div className="roam-stack-popover-content">Collapse page</div>}
+              content={<div className="roam-stack-popover-content">Fold tab</div>}
               interactionKind={PopoverInteractionKind.HOVER}
               position={Position.BOTTOM}
               target={
                 <Button
                   minimal
-                  icon="chevron-left"
+                  icon="menu-closed"
                   small
                   onClick={() => toggleCollapsed(item.id)}
                 />
@@ -265,6 +266,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
                   index={index}
                   total={total}
                   context={context}
+                  isCollapsed={collapsed}
                 />
               }
               position={Position.BOTTOM_RIGHT}

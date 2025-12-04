@@ -9,13 +9,16 @@ export const StackPageMenu = ({
   index,
   total,
   context,
+  isCollapsed,
 }: {
   item: PageItem;
   index: number;
   total: number;
+  isCollapsed: boolean;
   context: StackContextType;
 }) => {
   const {
+    toggleCollapsed,
     foldAll,
     unfoldAll,
     removeOtherTabs,
@@ -27,13 +30,17 @@ export const StackPageMenu = ({
   return (
     <Menu>
       <MenuItem
+        icon={item.pin ? "pin" : "unpin"}
+        intent={item.pin ? "danger" : 'none'}
         onClick={() => {
           togglePin(item.id);
         }}
         text={item.pin ? "Unpin" : "Pin"}
       />
+      <MenuDivider />
       <MenuItem
         disabled={item.pin}
+        icon="small-cross"
         text="Close"
         tagName="span"
         onClick={() => {
@@ -41,6 +48,7 @@ export const StackPageMenu = ({
         }}
       />
       <MenuItem
+        icon="small-cross"
         text="Close Others"
         onClick={() => {
           removeOtherTabs(item.id);
@@ -48,6 +56,7 @@ export const StackPageMenu = ({
         disabled={total === 1}
       />
       <MenuItem
+        icon="cross"
         onClick={() => {
           removeToTheRightTabs(index);
         }}
@@ -56,6 +65,7 @@ export const StackPageMenu = ({
       />
       <MenuDivider />
       <MenuItem
+        icon="duplicate"
         onClick={() => {
           copyToClipboard(`[[${item.title}]]`);
         }}
@@ -63,26 +73,35 @@ export const StackPageMenu = ({
       />
       <MenuDivider />
       <MenuItem
+        icon="add-column-right"
         onClick={() => {
           openInSidebar(item.id);
         }}
         text="Open in Sidebar"
       />
       <MenuDivider />
-
+      <MenuItem 
+        text={isCollapsed ? "Unfold Tab" : "Fold Tab"}
+        icon={isCollapsed ? "menu-open" : "menu-closed"}
+        onClick={() => {
+          toggleCollapsed(item.id);
+        }}
+      />
       <MenuItem
-        text="Fold All"
+        text="Fold All Tabs"
+        icon="collapse-all"
         onClick={() => {
           foldAll();
         }}
       />
       <MenuItem
-        text="Unfold All"
+        text="Unfold All Tabs"
+        icon="expand-all"
         onClick={() => {
           unfoldAll();
         }}
       />
-      <MenuDivider />
+
     </Menu>
   );
 };
