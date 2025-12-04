@@ -30,16 +30,8 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
     focusPageByUid,
     focusedIndex,
     pageWidth,
-    foldOffset,
-    titleTriggerOffset,
-    togglePin,
-    removeOtherTabs,
-    removeToTheRightTabs,
-    openInSidebar,
     isCollapsed,
     toggleCollapsed,
-    foldAll,
-    unfoldAll,
   } = context;
   const isObstructed = index < total - 1;
   const isFocused = focusedIndex === index;
@@ -241,12 +233,16 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
         <div
           className="roam-stack-card-main"
           style={{
-            display: collapsed ? "none" : "flex",
-            width: Math.max(cardWidth - CONSTANTS.SPINE_WIDTH, 0),
+            display: "flex",
+            width: collapsed ? 0 : Math.max(cardWidth - CONSTANTS.SPINE_WIDTH, 0),
           }}
         >
           <div
             className="roam-stack-card-header"
+            style={
+              collapsed ? {
+              opacity: 0
+            } : null}
           >
             <Popover
               content={<div className="roam-stack-popover-content">Collapse page</div>}

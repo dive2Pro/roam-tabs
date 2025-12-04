@@ -108,12 +108,12 @@
       margin-top: 10px;
     }
     .roam-stack-card-main {
-      display: flex; // Default display, overridden by inline if needed, or handled by conditional class? No, inline style has conditional display.
-      // But we can set other static props here.
+      display: flex;
       flex-direction: column;
       height: 100%;
       overflow: hidden;
       background-color: white;
+      transition: width 0.3s ease;
     }
     .roam-stack-card-header {
       display: flex;
@@ -153,7 +153,7 @@
     border-right: 1px solid #ddd;
     box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12); // 加深阴影方便观察对齐
     overflow: hidden;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, width 0.3s ease;
     background-color: white;
   }
   .rm-api-render--page {
