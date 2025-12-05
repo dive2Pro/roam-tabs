@@ -27,7 +27,7 @@
   }
 
   &-container {
-    background-color: white;
+    // background-color: white;
     &::-webkit-scrollbar-thumb {
       background-color: transparent;
       height: 10px;
@@ -282,4 +282,125 @@
   .roam-switch-command-title {
     flex: 1;
   }
+}
+
+.bp3-dark .bp3-button.bp3-outlined {
+  color: var(--dark-ff);
+}
+
+.bp3-dark .roam-tabs-container {
+  background-color: #30404d;
+  border-bottom: 1px solid rgba(16, 22, 26, 0.4);
+}
+
+.bp3-dark .roam-tabs-container::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+.bp3-dark .roam-tabs-container:hover::-webkit-scrollbar-thumb {
+  background-color: #5c7080;
+}
+
+/* --- 单个 Tab 按钮 --- */
+.bp3-dark button.roam-tab {
+  background-color: #394b59;
+  background-image: linear-gradient(180deg, hsla(0, 0%, 100%, 0.05), hsla(0, 0%, 100%, 0));
+  box-shadow: 0 0 0 1px rgba(16, 22, 26, 0.4);
+  color: #a7b6c2;
+}
+
+.bp3-dark button.roam-tab:hover {
+  background-color: #30404d;
+  color: #f5f8fa;
+}
+
+.bp3-dark button.roam-tab.bp3-active,
+.bp3-dark button.roam-tab[class*="active"] {
+  background-color: #202b33;
+  box-shadow: 0 0 0 1px rgba(16, 22, 26, 0.4), inset 0 -2px 0 #48aff0;
+  color: #f5f8fa;
+}
+
+/* --- Stack 模式容器 --- */
+.bp3-dark .roam-stack-container {
+  background-color: #293742;
+  color: white;
+}
+
+/* --- Stack 卡片 --- */
+.bp3-dark .roam-stack-card {
+  background-color: #30404d;
+  border-right: 1px solid rgba(16, 22, 26, 0.4);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.3);
+}
+
+.bp3-dark .roam-stack-card-main {
+  background-color: #30404d;
+}
+
+.bp3-dark .roam-stack-card-header {
+  background-color: #30404d;
+  border-bottom: 1px solid rgba(16, 22, 26, 0.4);
+}
+
+/* --- Stack 卡片侧边栏（书脊） --- */
+.bp3-dark .roam-stack-card-spine {
+  background: rgba(48, 64, 77, 0.8);
+  border-right: 1px solid rgba(16, 22, 26, 0.4);
+  color: #a7b6c2;
+}
+
+.bp3-dark .roam-stack-card-spine:hover {
+  background: rgba(57, 75, 89, 0.9);
+  color: #f5f8fa;
+}
+
+/* --- Stack 卡片聚焦状态 --- */
+.bp3-dark .roam-stack-card-focused .roam-stack-card-spine {
+  box-shadow: inset 5px 0px 0px #48aff0;
+}
+
+/* --- Stack 卡片标题 --- */
+.bp3-dark .roam-stack-card-title {
+  color: #bfccd6;
+}
+
+/* --- Stack 卡片内容区 --- */
+.bp3-dark .roam-stack-card-body {
+  background-color: #30404d;
+}
+
+/* --- 空状态文字 --- */
+.bp3-dark .roam-stack-empty-text {
+  color: #738694;
+}
+
+/* --- Minimap 小地图 --- */
+.bp3-dark .roam-stack-minimap {
+  background-color: rgba(32, 43, 51, 0.95);
+  border: 1px solid rgba(16, 22, 26, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bp3-dark .roam-stack-minimap .minimap-block {
+  background-color: #5c7080;
+}
+
+.bp3-dark .roam-stack-minimap .minimap-block.minimap-block-focused {
+  background-color: #48aff0;
+}
+
+.bp3-dark .roam-stack-minimap .minimap-thumb {
+  background-color: rgba(72, 175, 240, 0.15);
+  box-shadow: inset 0px 0px 5px 0px #48aff0;
+  border: 1px solid rgba(72, 175, 240, 0.6);
+}
+
+/* --- Switch Palette 切换面板 --- */
+.bp3-dark .roam-tabs-switch-el {
+  background-color: #30404d;
+  border: 1px solid rgba(16, 22, 26, 0.4);
+  box-shadow: 0 0 0 1px rgba(16, 22, 26, 0.2), 
+              0 4px 8px rgba(16, 22, 26, 0.4), 
+              0 18px 46px 6px rgba(16, 22, 26, 0.4);
 }
