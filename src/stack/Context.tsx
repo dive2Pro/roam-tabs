@@ -157,9 +157,11 @@ const StackProvider = ({
     if (willExpand) {
       const index = stack.findIndex((p) => p.id === uid);
       if (index > -1) {
+        // 因为有width的动画，要等待300ms来确保 tab 展现完全
+        scrollToPageIndex(index); 
         setTimeout(() => {
-          scrollToPageIndex(index);
-        }, 50);
+          scrollToPageIndex(index); 
+        }, 300);
       }
     }
   };

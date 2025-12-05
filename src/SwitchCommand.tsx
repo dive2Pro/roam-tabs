@@ -28,6 +28,7 @@ export const globalSwitchCommandOperator = {
 
 type SwitchCommandProps = {
   tabs: Tab[];
+  currentTab?: Tab;
   onTabSelect: (tab: Tab) => void;
   onTabSorted: (tabs: Tab[]) => void;
 };
@@ -80,6 +81,7 @@ export function renderSwitchCommand(tabs: Tab[], currentTab?: Tab) {
   ReactDOM.createRoot(el).render(
     <SwitchCommand
       tabs={tabs}
+      currentTab={currentTab}
       onTabSorted={(newTabs) => {
         saveAndRefreshTabs(newTabs, currentTab);
       }}
@@ -90,7 +92,7 @@ export function renderSwitchCommand(tabs: Tab[], currentTab?: Tab) {
   );
 }
 
-function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
+function SwitchCommand({ tabs, currentTab, onTabSelect, onTabSorted }: SwitchCommandProps) {
   const [state, setState] = useState({
     open: false,
   });
@@ -140,6 +142,9 @@ function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
       isOpen={state.open}
       onClose={() => globalSwitchCommandOperator.close()}
       items={tabs}
+      overlayProps={{
+        className: "roam-switch-command-omni"
+      }}
       itemPredicate={(query, item) => {
         return item.title.toLowerCase().includes(query.toLowerCase());
       }}
@@ -251,12 +256,13 @@ function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
                   className={
                     "bp3-menu-item" +
                     `${
-                      (itemListProps.activeItem as Tab)?.uid === value.uid
+                      currentTab.uid === value.uid
                         ? " bp3-active"
                         : ""
                     }`
                   }
                   style={{
+                    background: (itemListProps.activeItem as Tab)?.uid === value.uid ? "#efefef" : "transparent",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -268,7 +274,7 @@ function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
                     globalSwitchCommandOperator.close();
                   }}
                 >
-                  <span>{highlightText(value.title, itemListProps.query)}</span>
+                  <span className="roam-switch-command-title">{highlightText(value.title, itemListProps.query)}</span>
                   {!itemListProps.query ? (
                     <Icon
                       icon="drag-handle-vertical"

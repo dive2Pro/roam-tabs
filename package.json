@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "main": "extension.js",
   "scripts": {
-    "dev": "concurrently \"tsc --watch\" \"NODE_ENV=dev vite build --watch\"",
+    "dev": "concurrently \"tsc --watch\" \"vite build --watch --mode development\"",
     "build": "tsc && vite build"
   },
   "license": "MIT",

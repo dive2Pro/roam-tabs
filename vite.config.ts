@@ -18,69 +18,64 @@ const getPackageNameCamelCase = () => {
   }
 };
 
-const isDev = process.env.NODE_ENV === "dev";
-
-const build = isDev
-  ? {
-    //   watch: {},
-    }
-  : {};
-
 const fileName = {
   es: `extension.js`,
-  //   cjs: `${getPackageName()}.cjs`,
-  //   iife: `${getPackageName()}.iife.js`,
 };
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [
-    reactPlugin({
-      jsxRuntime: "classic",
-    }),
-    isDev ? undefined : removeConsole(),
-    viteExternalsPlugin({
-      "@blueprintjs/core": ["Blueprint", "Core"],
-      "@blueprintjs/datetime": ["Blueprint", "DateTime"],
-      "@blueprintjs/select": ["Blueprint", "Select"],
-      "chrono-node": "ChronoNode",
-      crypto: "crypto",
-      "crypto-js": "CryptoJS",
-      "file-saver": "FileSaver",
-      jszip: ["RoamLazy", "JSZip"],
-      idb: "idb",
-      marked: ["RoamLazy", "Marked"],
-      "marked-react": ["RoamLazy", "MarkedReact"],
-      nanoid: "Nanoid",
-      react: "React",
-      "react-dom": "ReactDOM",
-      "react-dom/client": "ReactDOM",
-      tslib: "TSLib",
-    }),
-  ],
-  //   base: "./",
-  //   // Makes HMR available for development
-  base: "./",
+export default defineConfig(({ mode }) => {
+  const isDev = mode === "development";
+  const build = isDev
+    ? {
+        watch: {},
+      }
+    : {};
 
-  build: {
-    lib: {
-      entry: path.resolve(__dirname, "src/index.tsx"),
-      name: getPackageNameCamelCase(),
-      formats: ["es"],
-      fileName: (format) => fileName[format],
-    },
-    outDir: "./",
-    minify: true,
-    rollupOptions: {
-      output: {
-        assetFileNames: "extension.[ext]",
+  return {
+    plugins: [
+      reactPlugin({
+        jsxRuntime: "classic",
+      }),
+      isDev ? undefined : removeConsole(),
+      viteExternalsPlugin({
+        "@blueprintjs/core": ["Blueprint", "Core"],
+        "@blueprintjs/datetime": ["Blueprint", "DateTime"],
+        "@blueprintjs/select": ["Blueprint", "Select"],
+        "chrono-node": "ChronoNode",
+        crypto: "crypto",
+        "crypto-js": "CryptoJS",
+        "file-saver": "FileSaver",
+        jszip: ["RoamLazy", "JSZip"],
+        idb: "idb",
+        marked: ["RoamLazy", "Marked"],
+        "marked-react": ["RoamLazy", "MarkedReact"],
+        nanoid: "Nanoid",
+        react: "React",
+        "react-dom": "ReactDOM",
+        "react-dom/client": "ReactDOM",
+        tslib: "TSLib",
+      }),
+    ],
+    base: "./",
+    build: {
+      lib: {
+        entry: path.resolve(__dirname, "src/index.tsx"),
+        name: getPackageNameCamelCase(),
+        formats: ["es"],
+        fileName: (format) => fileName[format],
       },
+      outDir: "./",
+      minify: true,
+      rollupOptions: {
+        output: {
+          assetFileNames: "extension.[ext]",
+        },
+      },
+      sourcemap: true,
+      ...build,
     },
-    sourcemap: true,
-    ...build,
-  },
-  logLevel: "error",
-  define: {
-    "process.env.NODE_ENV":  isDev ?  '"development"': '"production"'
-  }
+    logLevel: "error",
+    define: {
+      "process.env.NODE_ENV": isDev ? '"development"' : '"production"',
+    },
+  };
 });
