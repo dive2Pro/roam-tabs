@@ -4,7 +4,7 @@ Manage your working pages with tabs.
 
 ## Stack Mode 🥳
 
-[![image](https://github.com/dive2Pro/roam-tabs/blob/5f022018885a8fd08138779e9a5b7fc1cf9e8df7/asserts/stackmode.png)](https://github.com/user-attachments/assets/e2921c49-a6f7-484f-8ccf-41af1975848d)
+[![image](https://github.com/dive2Pro/roam-tabs/raw/5f022018885a8fd08138779e9a5b7fc1cf9e8df7/asserts/stackmode.png)](https://github.com/user-attachments/assets/e2921c49-a6f7-484f-8ccf-41af1975848d)
 
 Stack Mode is an alternative display mode for tabs that provides a unique visual experience. Instead of the traditional horizontal tab bar, pages are displayed in a stacked layout with horizontal scrolling.
 
