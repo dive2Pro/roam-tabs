@@ -2,9 +2,20 @@ import ReactDOM from "react-dom/client";
 import type { Tab } from "../type";
 import { StackApp } from "./Context";
 import { ReactNode } from "react";
+import { extension_helper } from "../helper";
 
 const ElParent = "roam-main";
 const El = "roam-stack-container";
+
+extension_helper.on_uninstall(() => {
+  if (root) {
+    root.unmount();
+    root = null;
+  }
+  if (el) {
+    el.remove();
+  }
+})
 let root: ReactDOM.Root | null = null;
 let el: HTMLElement | null = null;
 

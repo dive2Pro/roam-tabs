@@ -139,6 +139,9 @@ function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
     <Omnibar
       isOpen={state.open}
       onClose={() => globalSwitchCommandOperator.close()}
+      overlayProps={{
+        className: "roam-tabs-switch-omnibar",
+      }}
       items={tabs}
       itemPredicate={(query, item) => {
         return item.title.toLowerCase().includes(query.toLowerCase());
@@ -268,7 +271,9 @@ function SwitchCommand({ tabs, onTabSelect, onTabSorted }: SwitchCommandProps) {
                     globalSwitchCommandOperator.close();
                   }}
                 >
-                  <span>{highlightText(value.title, itemListProps.query)}</span>
+                  <span className="roam-tabs-switch-omnibar-item-title">
+                    {highlightText(value.title, itemListProps.query)}
+                  </span>
                   {!itemListProps.query ? (
                     <Icon
                       icon="drag-handle-vertical"
