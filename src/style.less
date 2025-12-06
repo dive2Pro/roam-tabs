@@ -453,11 +453,28 @@
   }
 }
 
-.roam-stack-last-edited-block {
-  background-color: rgba(255, 252, 220, 0.6) !important;
-  /* 浅黄色背景 */
-  border-left: 4px solid #ff9900 !important;
-  /* 左侧橙色指示条 */
-  border-radius: 4px;
-  transition: all 0.3s ease;
+.roam-stack-last-edited-block:not(:has(textarea)) {
+ /* 日间模式：极淡的暖色背景，只有隐约的感觉 */
+    background-color: rgba(255, 200, 0, 0.08) ; 
+    
+    /* 边框变细 (3px)，颜色半透明，不再是纯实心 */
+    border-left: 3px solid rgba(255, 165, 0, 0.5) ;
+    
+    /* 添加一点圆角，让视觉更柔和 */
+    border-radius: 0 4px 4px 0;
+    
+    /* 延长过渡时间到 0.5s，让颜色出现和消失像呼吸一样自然 */
+    transition: all 0.5s ease;
+    margin-left: -3px;
+}
+
+.bp3-dark .roam-stack-last-edited-block:not(:has(textarea)) {
+    /* 可选：添加一点微弱的阴影增加层次感 */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+
+      /* 黑夜模式：极淡的白光叠加，模拟聚光灯余韵 */
+    background-color: rgba(255, 255, 255, 0.03) ;
+    
+    /* 边框使用低饱和度的金色，不刺眼 */
+    border-left: 3px solid rgba(218, 165, 32, 0.4) ;
 }

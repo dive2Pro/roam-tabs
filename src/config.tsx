@@ -19,6 +19,7 @@ const Keys = {
   ClientCanSaveConfig: "ClientCanSaveConfig",
   TabMode: "TabMode",
   StackPageWidth: "StackPageWidth",
+  StackRememberLastEditedBlock: 'StackRememberLastEditedBlock'
 };
 
 let API: RoamExtensionAPI;
@@ -92,6 +93,20 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
               API.settings.set(Keys.StackPageWidth, Number(value));
               renderAppForConfig();
             }
+          },
+        },
+      },
+      {
+        id: Keys.StackRememberLastEditedBlock,
+        name: "Remember Last Edited Block (Stack Mode Only)",
+        description: "In Stack Mode, remember the last edited block in each tab",
+        action: {
+          type: "switch" as const,
+          onChange: (evt: { target: { checked: boolean } }) => {
+            API.settings.set(
+              Keys.StackRememberLastEditedBlock,
+              evt.target.checked
+            );
           },
         },
       },
@@ -203,6 +218,10 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
     },
   });
   renderAppForConfig();
+}
+
+export function isRememberLastEditedBlockInStackMode(): boolean {
+  return API.settings.get(Keys.StackRememberLastEditedBlock) === true;
 }
 
 export function getStackPageWidth(): number {

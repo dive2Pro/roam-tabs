@@ -10,7 +10,7 @@ import {
 import { StackContext } from "../Context";
 import { PageItem } from "../types";
 import { CONSTANTS } from "../constants";
-import { focusOnPageTab, focusTab, removeTab } from "../../config";
+import { focusOnPageTab, focusTab, isRememberLastEditedBlockInStackMode, removeTab } from "../../config";
 import { StackPageMenu } from "./StackPageMenu";
 
 type PageCardProps = {
@@ -83,50 +83,38 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
   // --- 3. 阴影触发点 ---
   // 当我(index)开始覆盖前一页(index-1)时
   const overlapStart = dynamicFoldOffsets(Math.max(index - 1, 0));
-
-  const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === "TEXTAREA") {
-      document
-        .querySelectorAll(".roam-stack-last-edited-block")
-        .forEach((el) => {
-          el.classList.remove("roam-stack-last-edited-block");
-        });
-      const blockMain = target.closest(".rm-block-main");
-      if (blockMain) {
-        blockMain.classList.add("roam-stack-last-edited-block");
-      }
-    }
-  };
+ 
   const divRef = useRef<HTMLDivElement>(null);
   const lastEditedBlockIdRef = useRef<string>("");
-  useEffect(() =>{
-    if(lastEditedBlockIdRef.current && !collapsed) {
-    console.log(`lastEditedBlockIdRef.current`, lastEditedBlockIdRef.current.substr(-9));
-
-      setTimeout(() => {
-divRef.current
-  .querySelector(`[id$="${lastEditedBlockIdRef.current.substr(-9)}"]`)
-  .closest(".rm-block-main")
-  ?.classList.add("roam-stack-last-edited-block");
-      } , 200)
-      
-    }
-  } , [collapsed])
   useEffect(() => {
-     
+    if (lastEditedBlockIdRef.current && !collapsed && isRememberLastEditedBlockInStackMode()) {
+      setTimeout(() => {
+        divRef.current
+          .querySelector(`[id$="${lastEditedBlockIdRef.current.substr(-9)}"]`)
+          .closest(".rm-block-main")
+          ?.classList.add("roam-stack-last-edited-block");
+      }, 200)
+
+    }
+  }, [collapsed])
+  useEffect(() => {
     if (!divRef.current) return;
     divRef.current.arrive("textarea", (el) => {
       lastEditedBlockIdRef.current = el.id;
       divRef.current.querySelectorAll(".roam-stack-last-edited-block").forEach((el) => {
         el.classList.remove("roam-stack-last-edited-block");
       })
+      if(!isRememberLastEditedBlockInStackMode()) {
+        lastEditedBlockIdRef.current = "";
+        return
+      }
       el.closest(".rm-block-main")?.classList.add("roam-stack-last-edited-block");
     })
     return () => {
       divRef.current.unbindArrive("textarea");
     };
-  } ,[] )
+  }, [])
+
   return (
     <div
       ref={divRef}
@@ -147,9 +135,8 @@ divRef.current
         }
         focusPage(index);
       }}
-      className={`roam-stack-card ${
-        collapsed ? "roam-stack-card-collapsed" : ""
-      }`}
+      className={`roam-stack-card ${collapsed ? "roam-stack-card-collapsed" : ""
+        }`}
       style={
         {
           // 传递给 CSS
@@ -187,9 +174,8 @@ divRef.current
       }
     >
       <div
-        className={`roam-stack-card-content ${
-          isFocused ? "roam-stack-card-focused" : ""
-        }`}
+        className={`roam-stack-card-content ${isFocused ? "roam-stack-card-focused" : ""
+          }`}
       >
         {/* 垂直脊 */}
         <div
@@ -246,7 +232,7 @@ divRef.current
                     isCollapsed={collapsed}
                   />,
                   { left: e.clientX, top: e.clientY },
-                  () => {}
+                  () => { }
                 );
               }
             }}
@@ -286,8 +272,8 @@ divRef.current
             className="roam-stack-card-header"
             style={
               collapsed ? {
-              opacity: 0
-            } : null}
+                opacity: 0
+              } : null}
           >
             <Popover
               content={<div className="roam-stack-popover-content">Fold tab</div>}
@@ -302,8 +288,8 @@ divRef.current
                 />
               }
             />
-            <Popover 
-              autoFocus={false} 
+            <Popover
+              autoFocus={false}
               content={
                 <StackPageMenu
                   item={item}
@@ -332,7 +318,6 @@ divRef.current
               }
               focusTab(item.id);
             }}
-            onFocus={handleFocus}
             className="roam-stack-card-body"
             ref={contentRef}
           ></div>
