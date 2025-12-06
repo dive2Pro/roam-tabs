@@ -1,17 +1,25 @@
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { StackContext } from "../Context";
+import { Tooltip, Position } from "@blueprintjs/core";
 
 export const Minimap = () => {
   const context = useContext(StackContext);
   if (!context) {
     throw new Error("Minimap must be used within StackProvider");
   }
-  const { stack, containerRef, pageWidth, collapsedNonce, focusedIndex } = context;
+  const { stack, containerRef, pageWidth, collapsedNonce, focusedIndex } =
+    context;
   const minimapTrackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
   const dragStartXRef = useRef(0);
   const dragStartLeftRef = useRef(0);
+  const [dragTitle, setDragTitle] = useState("");
+  const lastDragIndexRef = useRef(-1);
+
+  // @ts-ignore
+  const TooltipAny = Tooltip as any;
 
   // 初始化/Resize 计算
   const updateDimensions = () => {
@@ -83,6 +91,7 @@ export const Minimap = () => {
     if (!thumbRef.current || !containerRef.current) return;
 
     isDraggingRef.current = true;
+    setIsDraggingState(true);
     dragStartXRef.current = e.clientX;
 
     // 获取当前的 transform X 值
@@ -96,6 +105,18 @@ export const Minimap = () => {
     }
 
     dragStartLeftRef.current = currentLeft;
+
+    // 初始化拖拽标题
+    const dims = updateDimensions();
+    if (dims) {
+      const scrollLeft = currentLeft / dims.scaleRatio;
+      const centerScroll = scrollLeft + dims.viewportWidth / 2;
+      const pageIndex = Math.floor(centerScroll / pageWidth);
+      if (stack[pageIndex]) {
+        setDragTitle(stack[pageIndex].title);
+        lastDragIndexRef.current = pageIndex;
+      }
+    }
 
     const handleMouseMove = (e: MouseEvent) => {
       if (
@@ -126,13 +147,27 @@ export const Minimap = () => {
       // 临时关闭 smooth 滚动
       const originalScrollBehavior = containerRef.current.style.scrollBehavior;
       containerRef.current.style.scrollBehavior = "auto";
-      containerRef.current.scrollLeft = newThumbLeft / dims.scaleRatio;
+      const newScrollLeft = newThumbLeft / dims.scaleRatio;
+      containerRef.current.scrollLeft = newScrollLeft;
       containerRef.current.style.scrollBehavior =
         originalScrollBehavior || "smooth";
+
+      // 3. 更新拖拽标题
+      const centerScroll = newScrollLeft + dims.viewportWidth / 2;
+      const pageIndex = Math.floor(centerScroll / pageWidth);
+
+      if (pageIndex !== lastDragIndexRef.current) {
+        lastDragIndexRef.current = pageIndex;
+        const targetPage = stack[pageIndex];
+        if (targetPage) {
+          setDragTitle(targetPage.title);
+        }
+      }
     };
 
     const handleMouseUp = () => {
       isDraggingRef.current = false;
+      setIsDraggingState(false);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
@@ -201,25 +236,35 @@ export const Minimap = () => {
       className="roam-stack-minimap"
       onMouseDown={handleTrackClick}
     >
-      {/* Minimap 背景预览 */}
-      <div className="roam-stack-minimap-preview">
-        {stack.map((item, index) => {
-          return (
-            <div
-              key={item.id}
-              className={`minimap-block ${
-                index === focusedIndex ? "minimap-block-focused" : ""
-              }`}
-            />
-          );
-        })}
+      <div style={{ width: "100%", height: "100%", position: "relative" }}>
+        {/* Minimap 背景预览 */}
+        <div className="roam-stack-minimap-preview">
+          {stack.map((item, index) => {
+            return (
+              <TooltipAny
+                key={item.id}
+                content={item.title}
+                position={Position.TOP}
+                hoverOpenDelay={0}
+                transitionDuration={100}
+                disabled={isDraggingState}
+              >
+                <div
+                  className={`minimap-block ${
+                    index === focusedIndex ? "minimap-block-focused" : ""
+                  }`}
+                />
+              </TooltipAny>
+            );
+          })}
+        </div>
+        {/* 可拖拽的视口框 (Thumb) */}
+        <div
+          ref={thumbRef}
+          className="minimap-thumb"
+          onMouseDown={handleMouseDown}
+        />
       </div>
-      {/* 可拖拽的视口框 (Thumb) */}
-      <div
-        ref={thumbRef}
-        className="minimap-thumb"
-        onMouseDown={handleMouseDown}
-      />
     </div>
   );
 };

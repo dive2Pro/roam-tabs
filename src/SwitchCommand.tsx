@@ -71,7 +71,7 @@ function highlightText(text: string, query: string) {
 const ElParent = document.body;
 const El = "roam-tabs-switch-el";
 
-let el: HTMLElement | null = null;
+let el: HTMLElement | null = document.querySelector(`.${El}`);
 export function renderSwitchCommand(tabs: Tab[], currentTab?: Tab) {
   if (!el) {
     el = document.createElement("div");
@@ -141,10 +141,11 @@ function SwitchCommand({ tabs, currentTab, onTabSelect, onTabSorted }: SwitchCom
     <Omnibar
       isOpen={state.open}
       onClose={() => globalSwitchCommandOperator.close()}
-      items={tabs}
       overlayProps={{
-        className: "roam-switch-command-omni"
+        className: "roam-tabs-switch-omnibar",
       }}
+      items={tabs}
+  
       itemPredicate={(query, item) => {
         return item.title.toLowerCase().includes(query.toLowerCase());
       }}

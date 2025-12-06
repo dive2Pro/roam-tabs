@@ -1,32 +1,39 @@
 .roam-main {
   position: relative;
 }
+
 .roam-app-stack {
   .roam-tabs {
     display: none;
   }
+
   .roam-stack-container {
     display: block;
   }
 }
+
 .roam-tabs {
   height: 30px;
   min-height: 30px;
   z-index: 10;
+
   &:not(:has(.roam-tab)) {
     opacity: 0;
   }
+
   button.roam-tab {
     margin-right: 4px;
 
     .bp3-button-text {
       display: inline-flex;
     }
+
     transition-delay: 1s;
     transition-property: max-width;
   }
 
   &-container {
+
     // background-color: white;
     &::-webkit-scrollbar-thumb {
       background-color: transparent;
@@ -36,6 +43,7 @@
     overflow-x: auto;
     white-space: nowrap;
     padding: 5px;
+
     &:hover::-webkit-scrollbar-thumb {
       background-color: #bfbfbf;
     }
@@ -44,6 +52,7 @@
 
 .roam-body .roam-app .roam-body-main {
   flex: 0 0 calc(100% - 75px);
+
   &:has(.roam-stack-container) {
     flex: 0 0 calc(100% - 45px);
   }
@@ -60,21 +69,25 @@
     z-index: 1;
     display: none;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
     &.roam-stack-container-hide {
       // display: none;
       opacity: 0;
       pointer-events: none;
     }
+
     .rm-streak {
       overflow: auto;
     }
+
     .roam-stack-card-title {
       line-height: inherit;
       // flex: 1;
       cursor: pointer;
       opacity: var(--title-opacity);
-
+      user-select: none;
     }
+
     .roam-stack-card-spine {
       left: 0;
       top: 0;
@@ -93,6 +106,7 @@
         display: contents;
       }
     }
+
     .roam-stack-card-spine-buttons {
       pointer-events: auto;
       opacity: 1;
@@ -101,12 +115,15 @@
       flex-direction: column;
       gap: 5px;
     }
+
     .roam-stack-popover-content {
       padding: 5px 10px;
     }
+
     .roam-stack-expand-btn {
       margin-top: 10px;
     }
+
     .roam-stack-card-main {
       display: flex;
       flex-direction: column;
@@ -115,6 +132,7 @@
       background-color: white;
       transition: width 0.3s ease;
     }
+
     .roam-stack-card-header {
       display: flex;
       justify-content: flex-end;
@@ -124,11 +142,13 @@
       flex-shrink: 0;
       background: white;
     }
+
     .roam-stack-card-focused .roam-stack-card-spine {
       box-shadow: inset 5px 0px 0px var(--accent-purple, var(--primary-color));
       transition: transform 0.3s ease,
         box-shadow 0.3s ease;
     }
+
     &:has(.excalidraw-textEditorContainer) {
       .roam-stack-scroll-indicator {
         opacity: 0 !important;
@@ -140,12 +160,15 @@
     &:has(.excalidraw-textEditorContainer) {
       z-index: 2;
     }
+
     &-content {
       display: flex;
     }
+
     &.roam-stack-card-collapsed {
       box-shadow: none;
     }
+
     flex-shrink: 0;
     display: flex;
     height: 100%;
@@ -153,9 +176,11 @@
     border-right: 1px solid #ddd;
     box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12); // 加深阴影方便观察对齐
     overflow: hidden;
-    transition: transform 0.3s ease, width 0.3s ease;
+    transition: transform 0.3s ease,
+    width 0.3s ease;
     background-color: white;
   }
+
   .rm-api-render--page {
     padding-left: 30px;
   }
@@ -166,6 +191,7 @@
     position: absolute;
     z-index: 1000;
   }
+
   * {
     display: block;
   }
@@ -176,7 +202,8 @@
   position: absolute;
   bottom: 60px;
   right: 20px;
-  z-index: 2; /* 确保在最上层 */
+  z-index: 2;
+  /* 确保在最上层 */
 
   width: 100%;
   background-color: rgba(255, 255, 255, 0.9);
@@ -186,12 +213,22 @@
   cursor: pointer;
   border: 1px solid #e0e0e0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(5px); /* 毛玻璃效果 */
+  backdrop-filter: blur(5px);
+  /* 毛玻璃效果 */
 
   /* 限制最大宽度，防止 tab 太多时太长 */
   max-width: 250px;
   padding: 6px;
   box-sizing: border-box;
+
+  * {
+    display: block;
+    flex: 1;
+  }
+
+  span.bp3-popover-target {
+    display: block;
+  }
 
   /* Minimap 背景预览 */
   .roam-stack-minimap-preview {
@@ -200,18 +237,21 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    pointer-events: none; /* 让点击穿透到 container */
+    /* pointer-events: none; 让点击穿透到 container */
     opacity: 0.5;
+
   }
 
   /* 单个方块 (代表一个 Panel) */
   .minimap-block {
     flex-shrink: 0;
     height: 24px;
-    background-color: #cacaca; /* 浅橙色 (未选中) */
+    background-color: #cacaca;
+    /* 浅橙色 (未选中) */
     border-radius: 4px;
     min-width: 4px;
     flex: 1;
+
     &.minimap-block-focused {
       background-color: var(--primary-color, #106ba3);
     }
@@ -220,7 +260,7 @@
   /* Minimap 滑块 (高亮视口) */
   .minimap-thumb {
     position: absolute;
-    left: 6px;
+    left: 0px;
     height: 100%;
     top: 0;
     background-color: #fdffff33;
@@ -236,8 +276,9 @@
 
   .minimap-thumb:active {
     cursor: grabbing;
-    
-    transition: none; /* 拖拽时禁用过渡 */
+
+    transition: none;
+    /* 拖拽时禁用过渡 */
   }
 }
 
@@ -287,6 +328,7 @@
 .bp3-dark .bp3-button.bp3-outlined {
   color: var(--dark-ff);
 }
+
 
 .bp3-dark .roam-tabs-container {
   background-color: #30404d;
@@ -400,7 +442,22 @@
 .bp3-dark .roam-tabs-switch-el {
   background-color: #30404d;
   border: 1px solid rgba(16, 22, 26, 0.4);
-  box-shadow: 0 0 0 1px rgba(16, 22, 26, 0.2), 
-              0 4px 8px rgba(16, 22, 26, 0.4), 
-              0 18px 46px 6px rgba(16, 22, 26, 0.4);
+  box-shadow: 0 0 0 1px rgba(16, 22, 26, 0.2),
+    0 4px 8px rgba(16, 22, 26, 0.4),
+    0 18px 46px 6px rgba(16, 22, 26, 0.4);
+}
+
+.roam-app:has(.roam-sidebar-container[style^="left:"]):has(.rm-spacing--left-sidebar-closed) {
+  .roam-stack-container {
+    pointer-events: none;
+  }
+}
+
+.roam-stack-last-edited-block {
+  background-color: rgba(255, 252, 220, 0.6) !important;
+  /* 浅黄色背景 */
+  border-left: 4px solid #ff9900 !important;
+  /* 左侧橙色指示条 */
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }

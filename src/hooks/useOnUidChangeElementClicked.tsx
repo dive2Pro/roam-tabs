@@ -44,6 +44,10 @@ function observeElementClicked() {
     // 清除页面上所有的 portal
     const portals = document.querySelectorAll(".bp3-portal");
     portals.forEach((portal) => {
+      // portal.remove();
+      if(portal.querySelector('.roam-lift-toast')) {
+        return
+      }
       portal.remove();
     });
   };

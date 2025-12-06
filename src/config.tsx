@@ -147,6 +147,13 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
     ],
   });
   API.ui.commandPalette.addCommand({
+    label: "Roam Tabs: Toggle Auto Mode",
+    callback: () => {
+      const auto = API.settings.get(Keys.Auto) as boolean;
+      API.settings.set(Keys.Auto, !auto);
+    },
+  })
+  API.ui.commandPalette.addCommand({
     label: "Roam Tabs: Switch Tab...",
     callback() {
       globalSwitchCommandOperator.open();
