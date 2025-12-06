@@ -192,7 +192,13 @@
   max-width: 250px;
   padding: 6px;
   box-sizing: border-box;
-
+  * {
+      display: block;
+      flex: 1;
+    }
+        span.bp3-popover-target {
+          display: block;
+        }
   /* Minimap 背景预览 */
   .roam-stack-minimap-preview {
     width: 100%;
@@ -200,8 +206,9 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    pointer-events: none; /* 让点击穿透到 container */
+    /* pointer-events: none; 让点击穿透到 container */
     opacity: 0.5;
+    
   }
 
   /* 单个方块 (代表一个 Panel) */
