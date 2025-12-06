@@ -70,7 +70,7 @@ function highlightText(text: string, query: string) {
 const ElParent = document.body;
 const El = "roam-tabs-switch-el";
 
-let el: HTMLElement | null = null;
+let el: HTMLElement | null = document.querySelector(`.${El}`);
 export function renderSwitchCommand(tabs: Tab[], currentTab?: Tab) {
   if (!el) {
     el = document.createElement("div");

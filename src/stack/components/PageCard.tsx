@@ -84,8 +84,52 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
   // 当我(index)开始覆盖前一页(index-1)时
   const overlapStart = dynamicFoldOffsets(Math.max(index - 1, 0));
 
+  const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "TEXTAREA") {
+      document
+        .querySelectorAll(".roam-stack-last-edited-block")
+        .forEach((el) => {
+          el.classList.remove("roam-stack-last-edited-block");
+        });
+      const blockMain = target.closest(".rm-block-main");
+      if (blockMain) {
+        blockMain.classList.add("roam-stack-last-edited-block");
+      }
+    }
+  };
+  const divRef = useRef<HTMLDivElement>(null);
+  const lastEditedBlockIdRef = useRef<string>("");
+  useEffect(() =>{
+    if(lastEditedBlockIdRef.current && !collapsed) {
+    console.log(`lastEditedBlockIdRef.current`, lastEditedBlockIdRef.current.substr(-9));
+
+      setTimeout(() => {
+divRef.current
+  .querySelector(`[id$="${lastEditedBlockIdRef.current.substr(-9)}"]`)
+  .closest(".rm-block-main")
+  ?.classList.add("roam-stack-last-edited-block");
+      } , 200)
+      
+    }
+  } , [collapsed])
+  useEffect(() => {
+     
+    if (!divRef.current) return;
+    divRef.current.arrive("textarea", (el) => {
+      lastEditedBlockIdRef.current = el.id;
+      divRef.current.querySelectorAll(".roam-stack-last-edited-block").forEach((el) => {
+        el.classList.remove("roam-stack-last-edited-block");
+      })
+      el.closest(".rm-block-main")?.classList.add("roam-stack-last-edited-block");
+    })
+    return () => {
+      divRef.current.unbindArrive("textarea");
+    };
+  } ,[] )
   return (
     <div
+      ref={divRef}
       onClick={(e) => {
         const target = e.target as HTMLElement;
         const zoomsClass = ["rm-zoom-item", "rm-zoom-item-content"];
@@ -288,6 +332,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
               }
               focusTab(item.id);
             }}
+            onFocus={handleFocus}
             className="roam-stack-card-body"
             ref={contentRef}
           ></div>

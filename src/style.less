@@ -227,7 +227,7 @@
   /* Minimap 滑块 (高亮视口) */
   .minimap-thumb {
     position: absolute;
-    left: 6px;
+    left: 0px;
     height: 100%;
     top: 0;
     background-color: #fdffff33;
@@ -414,4 +414,13 @@
   .roam-stack-container {
     pointer-events: none;
   }
+}
+
+.roam-stack-last-edited-block {
+background-color: rgba(255, 252, 220, 0.6) !important;
+  /* 浅黄色背景 */
+  border-left: 4px solid #ff9900 !important;
+  /* 左侧橙色指示条 */
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }
