@@ -236,7 +236,7 @@ export const Minimap = () => {
       className="roam-stack-minimap"
       onMouseDown={handleTrackClick}
     >
-      <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      <div style={{ width: "100%", height: "100%" }}>
         {/* Minimap 背景预览 */}
         <div className="roam-stack-minimap-preview">
           {stack.map((item, index) => {
