@@ -111,7 +111,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
       el.closest(".rm-block-main")?.classList.add("roam-stack-last-edited-block");
     })
     return () => {
-      divRef.current.unbindArrive("textarea");
+      divRef.current?.unbindArrive("textarea");
     };
   }, [])
 
