@@ -12,6 +12,7 @@ import { PageItem } from "../types";
 import { CONSTANTS } from "../constants";
 import { focusOnPageTab, focusTab, isRememberLastEditedBlockInStackMode, removeTab } from "../../config";
 import { StackPageMenu } from "./StackPageMenu";
+import { observeLastEditedBlock } from "../../hooks/useRememberLastEditedBlock";
 
 type PageCardProps = {
   item: PageItem;
@@ -88,10 +89,17 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
   const lastEditedBlockIdRef = useRef<string>("");
   useEffect(() => {
     if (lastEditedBlockIdRef.current && !collapsed && isRememberLastEditedBlockInStackMode()) {
-      setTimeout(() => {
-        divRef.current
-          .querySelector(`[id$="${lastEditedBlockIdRef.current.substr(-9)}"]`)
-          .closest(".rm-block-main")
+      setTimeout(() => {  
+          // 在 renderpage 中页面 block 的 id 代表 page 的 id 每次都不一样， 但是 embed block 的 id 是固定的
+        const fullIdQueryElement = divRef.current
+          .querySelector(`[id$="${lastEditedBlockIdRef.current}"]`);
+        let queryElelemt = fullIdQueryElement;
+        if (!queryElelemt) {
+          queryElelemt = divRef.current.querySelector(
+            `[id$="${lastEditedBlockIdRef.current.substr(-9)}"]`
+          );
+        };
+        queryElelemt.closest(".rm-block-main")
           ?.classList.add("roam-stack-last-edited-block");
       }, 200)
 
@@ -99,20 +107,13 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
   }, [collapsed])
   useEffect(() => {
     if (!divRef.current) return;
-    divRef.current.arrive("textarea", (el) => {
+    return observeLastEditedBlock(divRef.current, (el) => {
       lastEditedBlockIdRef.current = el.id;
-      divRef.current.querySelectorAll(".roam-stack-last-edited-block").forEach((el) => {
-        el.classList.remove("roam-stack-last-edited-block");
-      })
       if(!isRememberLastEditedBlockInStackMode()) {
         lastEditedBlockIdRef.current = "";
         return
       }
-      el.closest(".rm-block-main")?.classList.add("roam-stack-last-edited-block");
     })
-    return () => {
-      divRef.current?.unbindArrive("textarea");
-    };
   }, [])
 
   return (

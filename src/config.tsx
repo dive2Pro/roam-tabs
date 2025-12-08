@@ -9,6 +9,7 @@ import {
   globalSwitchCommandOperator,
   renderSwitchCommand,
 } from "./SwitchCommand";
+import { unwatchAllRoamSections, watchAllRoamSections } from "./hooks/useRememberLastEditedBlock";
 
 const Keys = {
   Auto: "Auto",
@@ -98,8 +99,8 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
       },
       {
         id: Keys.StackRememberLastEditedBlock,
-        name: "Remember Last Edited Block (Stack Mode Only)",
-        description: "In Stack Mode, remember the last edited block in each tab",
+        name: "Remember Last Edited Block",
+        description: "",
         action: {
           type: "switch" as const,
           onChange: (evt: { target: { checked: boolean } }) => {
@@ -107,6 +108,11 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
               Keys.StackRememberLastEditedBlock,
               evt.target.checked
             );
+            if (evt.target.checked) {
+              watchAllRoamSections()
+            } else {
+              unwatchAllRoamSections();
+            }
           },
         },
       },
@@ -217,6 +223,9 @@ export function initConfig(extensionAPI: RoamExtensionAPI) {
       }
     },
   });
+  if(isRememberLastEditedBlockInStackMode()) {
+    watchAllRoamSections();
+  }
   renderAppForConfig();
 }
 
