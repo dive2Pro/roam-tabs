@@ -19,7 +19,9 @@ import { Layout } from "./components/Layout";
 /* ===========================================================================
  * 4. 核心逻辑 (Context)
  * =========================================================================== */
-export const StackContext = createContext<StackContextType | undefined>(undefined);
+export const StackContext = createContext<StackContextType | undefined>(
+  undefined
+);
 
 type StackProviderProps = {
   children: ReactNode;
@@ -56,7 +58,6 @@ const StackProvider = ({
   const [collapsedNonce, setCollapsedNonce] = useState(0);
 
   const isCollapsed = (uid: string) => collapsedSet.has(uid);
-
 
   const foldAll = () => {
     const all = new Set(stack.map((p) => p.id));
@@ -109,12 +110,10 @@ const StackProvider = ({
 
     // 动态计算：考虑主动折叠后的可视宽度
     // 目标滚动位置 = 前面各页的 (实际宽度 - 脊宽度) 之和
-    const targetScrollLeft = stack
-      .slice(0, index)
-      .reduce((sum, p) => {
-        const w = isCollapsed(p.id) ? CONSTANTS.SPINE_WIDTH : pageWidth;
-        return sum + (w - CONSTANTS.SPINE_WIDTH);
-      }, 0);
+    const targetScrollLeft = stack.slice(0, index).reduce((sum, p) => {
+      const w = isCollapsed(p.id) ? CONSTANTS.SPINE_WIDTH : pageWidth;
+      return sum + (w - CONSTANTS.SPINE_WIDTH);
+    }, 0);
 
     container.scrollTo({
       left: targetScrollLeft,
@@ -158,9 +157,9 @@ const StackProvider = ({
       const index = stack.findIndex((p) => p.id === uid);
       if (index > -1) {
         // 因为有width的动画，要等待300ms来确保 tab 展现完全
-        scrollToPageIndex(index); 
+        scrollToPageIndex(index);
         setTimeout(() => {
-          scrollToPageIndex(index); 
+          scrollToPageIndex(index);
         }, 300);
       }
     }
@@ -217,12 +216,23 @@ const StackProvider = ({
     }
   };
 
+  const onResizeRef = useRef<() => void>(() => {});
+
+  onResizeRef.current = () => {
+    updateScrollMetrics();
+    if (activeIndex > -1) {
+      scrollToPageIndex(activeIndex);
+    }
+  };
+
   // 监听容器尺寸变化
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     updateScrollMetrics();
-    const observer = new ResizeObserver(updateScrollMetrics);
+    const observer = new ResizeObserver(() => {
+      onResizeRef.current();
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -282,7 +292,6 @@ const StackProvider = ({
     </StackContext.Provider>
   );
 };
-
 
 // 全局变量跟踪 Ctrl/Cmd 键状态
 let ctrlKeyPressed = false;
