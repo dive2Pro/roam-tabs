@@ -12,6 +12,8 @@
   }
 }
 
+
+
 .roam-tabs {
   height: 30px;
   min-height: 30px;
@@ -69,7 +71,11 @@
     z-index: 1;
     display: none;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+    .roam-stack-layout-container {
+        &::-webkit-scrollbar {
+            display: none;
+          }
+    }
     &.roam-stack-container-hide {
       // display: none;
       opacity: 0;
@@ -200,7 +206,7 @@
 /* 指示器容器 */
 .roam-stack-minimap {
   position: absolute;
-  bottom: 60px;
+  bottom: 10px;
   right: 20px;
   z-index: 2;
   /* 确保在最上层 */
@@ -304,6 +310,12 @@
   overflow-y: hidden;
   scroll-behavior: smooth;
   padding-right: 0;
+  .rm-block-separator {
+    min-width: unset;
+  }
+    .roam-block {
+      overflow: auto;
+    }
 }
 
 .roam-stack-empty-state {

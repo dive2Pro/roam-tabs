@@ -55,7 +55,7 @@ export const Layout = () => {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="roam-stacks-container roam-stack-layout-container"
+        className="roam-stack-layout-container"
         style={
           {
             "--scroll-x": "0",
