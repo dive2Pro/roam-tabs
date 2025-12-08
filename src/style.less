@@ -291,7 +291,7 @@
 }
 
 .roam-stack-layout {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -453,7 +453,8 @@
   }
 }
 
-.roam-stack-last-edited-block:not(:has(textarea)) {
+// :not(:has(textarea))
+.roam-stack-last-edited-block  {
  /* 日间模式：极淡的暖色背景，只有隐约的感觉 */
     background-color: rgba(255, 200, 0, 0.08) ; 
     
@@ -468,7 +469,7 @@
     margin-left: -3px;
 }
 
-.bp3-dark .roam-stack-last-edited-block:not(:has(textarea)) {
+.bp3-dark .roam-stack-last-edited-block {
     /* 可选：添加一点微弱的阴影增加层次感 */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 
