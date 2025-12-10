@@ -5,7 +5,7 @@ import { useEvent } from "./useEvent";
 let listeners: ((uid?: string) => void)[] = [];
 export function useOnUidWillChange(callback: (uid?: string) => void) {
   const cb = useEvent(callback);
-  console.log("useOnUidWillChange: ", cb);
+  // console.log("useOnUidWillChange: ", cb);
   useEffect(() => {
     listeners.push(cb);
     return () => {

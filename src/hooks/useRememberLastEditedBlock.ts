@@ -1,3 +1,5 @@
+import { extension_helper } from "../helper";
+
 const CLASS_NAME = "roam-stack-last-edited-block";
 const QUERY_SELECTOR = `.${CLASS_NAME}`;
 export function observeLastEditedBlock(
@@ -67,6 +69,9 @@ export function watchAllRoamSections() {
   return unsub;
 }
 
+extension_helper.on_uninstall(() => {
+    unsub();
+})
 export function unwatchAllRoamSections() {
   unsub();
 }
