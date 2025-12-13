@@ -1,19 +1,31 @@
 const CLASS_NAME = "roam-stack-last-edited-block";
 const QUERY_SELECTOR = `.${CLASS_NAME}`;
+
+const debounce = (fn: (...args: any[]) => void, delay = 300) => {
+  let timer: ReturnType<typeof setTimeout>;
+  return (...args: any[]) => {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+};
+
 export function observeLastEditedBlock(
   section: HTMLElement,
   onBlockChange: (block: HTMLElement) => void,
   querySelector = QUERY_SELECTOR ,
-  
 ) {
   if (!section) return;
-  const handler = (el: HTMLElement) => {
+  const handler = ((el: HTMLElement) => {
     section.querySelectorAll(querySelector).forEach((el) => {
       el.classList.remove(CLASS_NAME);
     });
     el.closest(".rm-block-main")?.classList.add(CLASS_NAME);
     onBlockChange(el as HTMLElement);
-  };
+  });
   section.arrive("textarea", handler);
   return () => {
     section.unbindArrive("textarea", handler);

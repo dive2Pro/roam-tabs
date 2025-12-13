@@ -68,7 +68,7 @@
     bottom: 0;
     position: absolute;
     background-color: white;
-    z-index: 1;
+    z-index: 11;
     display: none;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     .roam-stack-layout-container {
@@ -313,9 +313,17 @@
   .rm-block-separator {
     min-width: unset;
   }
-    .roam-block {
+  .rm-block-main:has(.rm-query) {
+        overflow: auto;
+  }
+
+  .rm-block-main:has(.rm-steak) {
       overflow: auto;
-    }
+  }
+  .rm-block-main:has(.rm-code-block) {
+      overflow: auto;
+  }
+
 }
 
 .roam-stack-empty-state {
