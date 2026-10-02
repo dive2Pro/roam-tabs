@@ -295,6 +295,27 @@ const StackProvider = ({
 
 // 全局变量跟踪 Ctrl/Cmd 键状态
 let ctrlKeyPressed = false;
+let clearCtrlIntentTimer: ReturnType<typeof setTimeout> | undefined;
+
+function consumeCtrlIntent(): boolean {
+  const pressed = ctrlKeyPressed;
+  ctrlKeyPressed = false;
+  if (clearCtrlIntentTimer) {
+    clearTimeout(clearCtrlIntentTimer);
+    clearCtrlIntentTimer = undefined;
+  }
+  return pressed;
+}
+
+function scheduleClearCtrlIntent() {
+  if (clearCtrlIntentTimer) {
+    clearTimeout(clearCtrlIntentTimer);
+  }
+  clearCtrlIntentTimer = setTimeout(() => {
+    ctrlKeyPressed = false;
+    clearCtrlIntentTimer = undefined;
+  }, 0);
+}
 
 export const StackApp = (props: {
   tabs: Tab[];
@@ -303,6 +324,8 @@ export const StackApp = (props: {
   collapsedUids?: string[];
 }) => {
   useOnUidWillChange(async (uid) => {
+    const openInNewTab =
+      consumeCtrlIntent() || isAutoOpenNewTab() || !!props.currentTab?.pin;
     if (!uid) {
       // 清空聚焦的页面
       saveAndRefreshTabs(props.tabs, undefined);
@@ -344,8 +367,7 @@ export const StackApp = (props: {
     }
 
     // 如果当前标签页是 pinned 的，自动创建新标签页（类似于 horizontal 模式）
-    const shouldCreateNewTab =
-      ctrlKeyPressed || isAutoOpenNewTab() || props.currentTab?.pin;
+    const shouldCreateNewTab = openInNewTab;
 
     // console.log({
     //   shouldCreateNewTab,
@@ -388,11 +410,19 @@ export const StackApp = (props: {
   useEffect(() => {
     const onPointerdown = (e: PointerEvent) => {
       ctrlKeyPressed = e.ctrlKey || e.metaKey;
+      if (clearCtrlIntentTimer) {
+        clearTimeout(clearCtrlIntentTimer);
+        clearCtrlIntentTimer = undefined;
+      }
     };
 
     document.addEventListener("pointerdown", onPointerdown);
+    document.addEventListener("pointerup", scheduleClearCtrlIntent);
+    document.addEventListener("pointercancel", scheduleClearCtrlIntent);
     return () => {
       document.removeEventListener("pointerdown", onPointerdown);
+      document.removeEventListener("pointerup", scheduleClearCtrlIntent);
+      document.removeEventListener("pointercancel", scheduleClearCtrlIntent);
     };
   }, []);
 

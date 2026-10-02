@@ -90,15 +90,12 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
 
   forceUpdate = useReducer((i) => i + 1, 0)[1];
   const onChange = useEvent((uid: string, title: string, blockUid: string) => {
+    const openInNewTab =
+      consumeCtrlIntent() || !!currentTab?.pin || isAutoOpenNewTab();
     if (uid) {
       const cacheTab = loadTabsFromSettings();
       const currentTabs = cacheTab?.tabs || [];
       const oldTab = currentTabs.find((tab) => tab.uid === uid);
-      let oldCtrlKeyPressed = ctrlKeyPressed;
-
-      if (currentTab?.pin) {
-        ctrlKeyPressed = true;
-      }
       const newTab = {
         ...oldTab,
         uid,
@@ -114,7 +111,7 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
       let updatedTabs: Tab[];
       let updatedCurrentTab: Tab | undefined;
 
-      if (ctrlKeyPressed || isAutoOpenNewTab()) {
+      if (openInNewTab) {
         if (index === -1) {
           updatedTabs = [...currentTabs, newTab];
         } else {
@@ -148,13 +145,16 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
       }
 
       saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
-      ctrlKeyPressed = oldCtrlKeyPressed;
     } else {
       saveAndRefreshTabs(tabs, undefined);
     }
   });
   const onPointerdown = useEvent(function onPointerdown(e: PointerEvent) {
     ctrlKeyPressed = e.ctrlKey || e.metaKey;
+    if (clearCtrlIntentTimer) {
+      clearTimeout(clearCtrlIntentTimer);
+      clearCtrlIntentTimer = undefined;
+    }
     // console.log(scrollTop$, ' ---global')
   });
 
@@ -178,6 +178,7 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
   useOnUidWillChange((uid) => {
     console.log("useOnUidWillChange: ", uid);
     if (!uid) {
+      consumeCtrlIntent();
       saveAndRefreshTabs(tabs, undefined);
       return;
     }
@@ -188,8 +189,12 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
 
   useEffect(() => {
     document.addEventListener("pointerdown", onPointerdown);
+    document.addEventListener("pointerup", scheduleClearCtrlIntent);
+    document.addEventListener("pointercancel", scheduleClearCtrlIntent);
     return () => {
       document.removeEventListener("pointerdown", onPointerdown);
+      document.removeEventListener("pointerup", scheduleClearCtrlIntent);
+      document.removeEventListener("pointercancel", scheduleClearCtrlIntent);
     };
   }, []);
 
@@ -386,6 +391,27 @@ const openUid = (uid: string) => {
 };
 
 let ctrlKeyPressed = false;
+let clearCtrlIntentTimer: ReturnType<typeof setTimeout> | undefined;
+
+function consumeCtrlIntent(): boolean {
+  const pressed = ctrlKeyPressed;
+  ctrlKeyPressed = false;
+  if (clearCtrlIntentTimer) {
+    clearTimeout(clearCtrlIntentTimer);
+    clearCtrlIntentTimer = undefined;
+  }
+  return pressed;
+}
+
+function scheduleClearCtrlIntent() {
+  if (clearCtrlIntentTimer) {
+    clearTimeout(clearCtrlIntentTimer);
+  }
+  clearCtrlIntentTimer = setTimeout(() => {
+    ctrlKeyPressed = false;
+    clearCtrlIntentTimer = undefined;
+  }, 0);
+}
 
 function getPageUidByUid(uid: string) {
   const pageUid = window.roamAlphaAPI.q(`
