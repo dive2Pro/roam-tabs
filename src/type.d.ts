@@ -6,12 +6,21 @@ export type Command = {
   "default-hotkey"?: string;
 };
 
+export type TabSnapshot = {
+  uid: string;
+  title: string;
+  blockUid: string;
+};
+
 export type Tab = {
+  tabId: string;
   uid: string;
   title: string;
   blockUid: string;
   scrollTop?: number;
   pin: boolean;
+  backStack?: TabSnapshot[];
+  forwardStack?: TabSnapshot[];
 };
 
 export type CacheTab = {
