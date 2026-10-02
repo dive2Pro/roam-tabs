@@ -7,18 +7,11 @@ import React, {
 } from "react";
 import { Tab } from "../type";
 import {
-  createOrReuseTab,
-  ensureMainWindowMatchesTab,
-  findExactTabForSnapshot,
   isAutoOpenNewTab,
-  replaceTabPage,
-  restoreTabFromHistory,
   saveAndRefreshTabs,
   setCollapsedUids,
 } from "../config";
-import {
-  useOnUidWillChange,
-} from "../hooks/useOnUidChangeElementClicked";
+import { useOnUidWillChange } from "../hooks/useOnUidChangeElementClicked";
 import { StackContextType, PageItem } from "./types";
 import { CONSTANTS } from "./constants";
 import { Layout } from "./components/Layout";
@@ -35,8 +28,8 @@ type StackProviderProps = {
   tabs: PageItem[];
   active: string;
   pageWidth: number;
-  onTogglePin: (tabId: string) => void;
-  onRemoveOtherTabs: (tabId: string) => void;
+  onTogglePin: (uid: string) => void;
+  onRemoveOtherTabs: (uid: string) => void;
   onRemoveToTheRightTabs: (index: number) => void;
   onOpenInSidebar: (uid: string) => void;
   initialCollapsedUids?: string[];
@@ -64,7 +57,7 @@ const StackProvider = ({
   );
   const [collapsedNonce, setCollapsedNonce] = useState(0);
 
-  const isCollapsed = (tabId: string) => collapsedSet.has(tabId);
+  const isCollapsed = (uid: string) => collapsedSet.has(uid);
 
   const foldAll = () => {
     const all = new Set(stack.map((p) => p.id));
@@ -148,20 +141,20 @@ const StackProvider = ({
     }
   };
 
-  const toggleCollapsed = (tabId: string) => {
-    const willExpand = collapsedSet.has(tabId);
+  const toggleCollapsed = (uid: string) => {
+    const willExpand = collapsedSet.has(uid);
 
     setCollapsedSet((prev) => {
       const next = new Set(prev);
-      if (next.has(tabId)) next.delete(tabId);
-      else next.add(tabId);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
       setCollapsedUids(Array.from(next));
       return next;
     });
     setCollapsedNonce((n) => n + 1);
 
     if (willExpand) {
-      const index = stack.findIndex((p) => p.id === tabId);
+      const index = stack.findIndex((p) => p.id === uid);
       if (index > -1) {
         // 因为有width的动画，要等待300ms来确保 tab 展现完全
         scrollToPageIndex(index);
@@ -271,16 +264,16 @@ const StackProvider = ({
         foldOffset: pageWidth - CONSTANTS.SPINE_WIDTH,
         titleTriggerOffset: pageWidth - CONSTANTS.TITLE_SHOW_AT,
         focusPageByUid: (uid: string) => {
-          const index = stack.findIndex((p) => p.pageUid === uid);
+          const index = stack.findIndex((p) => p.id === uid);
           if (index > -1) {
             focusPage(index);
           }
         },
-        togglePin: (tabId: string) => {
-          onTogglePin(tabId);
+        togglePin: (uid: string) => {
+          onTogglePin(uid);
         },
-        removeOtherTabs: (tabId: string) => {
-          onRemoveOtherTabs(tabId);
+        removeOtherTabs: (uid: string) => {
+          onRemoveOtherTabs(uid);
         },
         removeToTheRightTabs: (index: number) => {
           onRemoveToTheRightTabs(index);
@@ -309,17 +302,10 @@ export const StackApp = (props: {
   pageWidth: number;
   collapsedUids?: string[];
 }) => {
-  useOnUidWillChange(async (uid, routeMeta) => {
-    const saveTabsAndSyncMainWindow = async (tabs: Tab[], activeTab?: Tab) => {
-      saveAndRefreshTabs(tabs, activeTab);
-    };
-
+  useOnUidWillChange(async (uid) => {
     if (!uid) {
       // 清空聚焦的页面
       saveAndRefreshTabs(props.tabs, undefined);
-      return;
-    }
-    if (routeMeta?.fromTabSwitch) {
       return;
     }
 
@@ -344,49 +330,22 @@ export const StackApp = (props: {
     }
 
     const [pageUid, title] = pageData;
-    const nextSnapshot = {
-      uid: pageUid,
-      title,
-      blockUid,
-    };
-    if (routeMeta?.fromSearchSelection) {
-      const exactMatchedTab = findExactTabForSnapshot(props.tabs, nextSnapshot);
-      if (exactMatchedTab) {
-        await saveTabsAndSyncMainWindow(props.tabs, exactMatchedTab);
-        await ensureMainWindowMatchesTab(exactMatchedTab);
-        return;
-      }
-    }
-    if (routeMeta?.ensureMainWindow && props.currentTab) {
-      const restoredTab = restoreTabFromHistory(props.currentTab, pageUid);
-      if (restoredTab) {
-        const updatedTabs = props.tabs.map((tab) =>
-          tab.tabId === props.currentTab.tabId ? restoredTab : tab
-        );
-        await saveTabsAndSyncMainWindow(updatedTabs, restoredTab);
-        await ensureMainWindowMatchesTab(restoredTab);
-        return;
-      }
-    }
-    const activeTabIndex = props.tabs.findIndex(
-      (tab) => tab.tabId === props.currentTab?.tabId
-    );
+    const existingTabIndex = props.tabs.findIndex((tab) => tab.uid === pageUid);
 
-    // Only override native search Enter behavior when Auto Mode is off and
-    // the current tab is not pinned. Otherwise keep the original pin/auto
-    // semantics for opening a new tab.
-    const shouldUseSearchNavigationOverride =
-      !!routeMeta?.fromSearchSelection &&
-      !isAutoOpenNewTab() &&
-      !props.currentTab?.pin;
-    const shouldCreateNewTab = shouldUseSearchNavigationOverride
-      ? !!routeMeta.forceOpenInNewTab
-      : !!(
-          ctrlKeyPressed ||
-          routeMeta?.forceOpenInNewTab ||
-          isAutoOpenNewTab() ||
-          props.currentTab?.pin
-        );
+    // 如果标签页已存在，更新它
+    if (existingTabIndex !== -1) {
+      const updatedTabs = [...props.tabs];
+      updatedTabs[existingTabIndex] = {
+        ...updatedTabs[existingTabIndex],
+        blockUid,
+      };
+      saveAndRefreshTabs(updatedTabs, updatedTabs[existingTabIndex]);
+      return;
+    }
+
+    // 如果当前标签页是 pinned 的，自动创建新标签页（类似于 horizontal 模式）
+    const shouldCreateNewTab =
+      ctrlKeyPressed || isAutoOpenNewTab() || props.currentTab?.pin;
 
     // console.log({
     //   shouldCreateNewTab,
@@ -396,44 +355,32 @@ export const StackApp = (props: {
     // });
     // 标签页不存在，根据 Ctrl/Cmd 键、Auto 模式和 pinned 状态决定行为
     if (shouldCreateNewTab) {
-      const newTab = createOrReuseTab(nextSnapshot);
+      // 创建新标签页
+      const newTab = { uid: pageUid, title, blockUid, pin: false };
       const tabs = [...props.tabs, newTab];
-      await saveTabsAndSyncMainWindow(tabs, newTab);
+      saveAndRefreshTabs(tabs, newTab);
     } else {
       // 不创建新标签页，根据情况处理
       if (props.tabs.length === 0) {
         // 如果标签列表为空，创建新标签页
-        const newTab = createOrReuseTab(nextSnapshot);
-        await saveTabsAndSyncMainWindow([newTab], newTab);
+        const newTab = { uid: pageUid, title, blockUid, pin: false };
+        saveAndRefreshTabs([newTab], newTab);
       } else if (!props.currentTab) {
         // 如果当前没有标签页，创建新标签页并设置为当前标签页
-        const newTab = createOrReuseTab(nextSnapshot);
+        const newTab = { uid: pageUid, title, blockUid, pin: false };
         const tabs = [...props.tabs, newTab];
-        await saveTabsAndSyncMainWindow(tabs, newTab);
-      } else if (
-        activeTabIndex !== -1 &&
-        props.tabs[activeTabIndex].uid === pageUid
-      ) {
-        const updatedCurrentTab = createOrReuseTab(
-          nextSnapshot,
-          props.tabs[activeTabIndex]
-        );
-        const updatedTabs = props.tabs.map((tab) =>
-          tab.tabId === updatedCurrentTab.tabId ? updatedCurrentTab : tab
-        );
-        await saveTabsAndSyncMainWindow(updatedTabs, updatedCurrentTab);
+        saveAndRefreshTabs(tabs, newTab);
       } else {
         // 否则，更新当前标签页（替换当前标签页的内容）
-        const updatedTabs = props.tabs.map((tab) => {
-          if (tab.tabId !== props.currentTab.tabId) {
-            return tab;
-          }
-          return replaceTabPage(tab, nextSnapshot);
-        });
-        const updatedCurrentTab =
-          updatedTabs.find((tab) => tab.tabId === props.currentTab.tabId) ||
-          createOrReuseTab(nextSnapshot, props.currentTab);
-        await saveTabsAndSyncMainWindow(updatedTabs, updatedCurrentTab);
+        const updatedTabs = props.tabs.map((tab) =>
+          tab.uid === props.currentTab.uid
+            ? { uid: pageUid, title, blockUid, pin: tab.pin }
+            : tab
+        );
+        const updatedCurrentTab = updatedTabs.find(
+          (tab) => tab.uid === pageUid
+        ) || { uid: pageUid, title, blockUid, pin: false };
+        saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
       }
     }
   });
@@ -449,27 +396,27 @@ export const StackApp = (props: {
     };
   }, []);
 
-  const togglePin = (tabId: string) => {
+  const togglePin = (uid: string) => {
     const updatedTabs = props.tabs.map((tab) =>
-      tab.tabId === tabId ? { ...tab, pin: !tab.pin } : tab
+      tab.uid === uid ? { ...tab, pin: !tab.pin } : tab
     );
-    const updatedCurrentTab = updatedTabs.find((tab) => tab.tabId === tabId);
+    const updatedCurrentTab = updatedTabs.find((tab) => tab.uid === uid);
     saveAndRefreshTabs(updatedTabs, updatedCurrentTab || props.currentTab);
   };
 
-  const removeOtherTabs = (tabId: string) => {
-    const updatedTabs = props.tabs.filter((tab) => tab.pin || tab.tabId === tabId);
-    const updatedCurrentTab = updatedTabs.find((tab) => tab.tabId === tabId);
+  const removeOtherTabs = (uid: string) => {
+    const updatedTabs = props.tabs.filter((tab) => tab.pin || tab.uid === uid);
+    const updatedCurrentTab = updatedTabs.find((tab) => tab.uid === uid);
     saveAndRefreshTabs(updatedTabs, updatedCurrentTab || props.currentTab);
   };
 
   const removeToTheRightTabs = (index: number) => {
-  const updatedTabs = [
+    const updatedTabs = [
       ...props.tabs.slice(0, index + 1),
       ...props.tabs.slice(index + 1).filter((t) => t.pin),
     ];
     const currentIndex = updatedTabs.findIndex(
-      (t) => t.tabId === props.currentTab?.tabId
+      (t) => t.uid === props.currentTab?.uid
     );
     const updatedCurrentTab =
       currentIndex === -1 || currentIndex > index
@@ -490,13 +437,12 @@ export const StackApp = (props: {
   return (
     <StackProvider
       tabs={props.tabs.map((tab) => ({
-        id: tab.tabId,
-        pageUid: tab.uid,
+        id: tab.uid,
         title: tab.title,
         blockUid: tab.blockUid,
         pin: tab.pin,
       }))}
-      active={props.currentTab?.tabId}
+      active={props.currentTab?.uid}
       pageWidth={props.pageWidth}
       onTogglePin={togglePin}
       onRemoveOtherTabs={removeOtherTabs}

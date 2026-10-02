@@ -2,7 +2,6 @@ import React from "react";
 
 export type PageItem = {
   id: string;
-  pageUid: string;
   title: string;
   blockUid: string;
   pin: boolean;
