@@ -47,7 +47,7 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
       if (collapsed) {
         return;
       }
-      if (item.blockUid !== item.pageUid) {
+      if (item.blockUid !== item.id) {
         window.roamAlphaAPI.ui.components.renderBlock({
           el: contentRef.current,
           uid: item.blockUid,
@@ -59,10 +59,10 @@ export const PageCard = ({ item, index, total }: PageCardProps) => {
       }
       window.roamAlphaAPI.ui.components.renderPage({
         el: contentRef.current,
-        uid: item.pageUid,
+        uid: item.id,
       });
     }, 50);
-  }, [item.pageUid, item.blockUid, collapsed]);
+  }, [item.id, item.blockUid, collapsed]);
 
   // --- 1. 基础折叠点 ---
   // 页面 sticky 吸附的时刻

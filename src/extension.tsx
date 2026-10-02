@@ -12,10 +12,6 @@ import {
 } from "@blueprintjs/core";
 import { copyToClipboard, extension_helper } from "./helper";
 import {
-  createOrReuseTab,
-  ensureMainWindowMatchesTab,
-  findExactTabForSnapshot,
-  focusTab as focusTabFromConfig,
   isAutoOpenNewTab,
   isStackMode,
   saveAndRefreshTabs,
@@ -23,16 +19,12 @@ import {
   removeOtherTabs as removeOtherTabsFromConfig,
   removeToTheRightTabs as removeToTheRightTabsFromConfig,
   toggleTabPin as toggleTabPinFromConfig,
+  focusTab as focusTabFromConfig,
   loadTabsFromSettings,
-  replaceTabPage,
-  restoreTabFromHistory,
 } from "./config";
 import type { Tab } from "./type";
 import type { RoamExtensionAPI } from "roam-types";
-import {
-  RouteSyncMeta,
-  useOnUidWillChange,
-} from "./hooks/useOnUidChangeElementClicked";
+import { useOnUidWillChange } from "./hooks/useOnUidChangeElementClicked";
 import { useEvent } from "./hooks/useEvent";
 
 const clazz = "roam-tabs";
@@ -97,95 +89,66 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
   console.log({ currentTab });
 
   forceUpdate = useReducer((i) => i + 1, 0)[1];
-  const onChange = useEvent(async (
-    uid: string,
-    title: string,
-    blockUid: string,
-    routeMeta?: RouteSyncMeta
-  ) => {
+  const onChange = useEvent((uid: string, title: string, blockUid: string) => {
     if (uid) {
       const cacheTab = loadTabsFromSettings();
       const currentTabs = cacheTab?.tabs || [];
-      const activeTab = cacheTab?.activeTab || currentTab;
-      const shouldUseSearchNavigationOverride =
-        !!routeMeta?.fromSearchSelection &&
-        !isAutoOpenNewTab() &&
-        !activeTab?.pin;
-      const shouldOpenInNewTab = shouldUseSearchNavigationOverride
-        ? !!routeMeta.forceOpenInNewTab
-        : !!(
-            ctrlKeyPressed ||
-            routeMeta?.forceOpenInNewTab ||
-            activeTab?.pin ||
-            isAutoOpenNewTab()
-          );
-      const nextSnapshot = {
+      const oldTab = currentTabs.find((tab) => tab.uid === uid);
+      let oldCtrlKeyPressed = ctrlKeyPressed;
+
+      if (currentTab?.pin) {
+        ctrlKeyPressed = true;
+      }
+      const newTab = {
+        ...oldTab,
         uid,
         title,
         blockUid,
       };
-      const newTab = createOrReuseTab(nextSnapshot);
 
       // 如果发现 newTab.blockUid 已经不在该页面下, 修改 tab 的 blockUid = pageUid
       const targetUid = getUidExitsInPage(newTab);
       newTab.blockUid = targetUid;
-      const targetSnapshot = {
-        ...nextSnapshot,
-        blockUid: targetUid,
-      };
 
-      if (routeMeta?.fromSearchSelection) {
-        const exactMatchedTab = findExactTabForSnapshot(
-          currentTabs,
-          targetSnapshot
-        );
-        if (exactMatchedTab) {
-          saveAndRefreshTabs(currentTabs, exactMatchedTab);
-          void ensureMainWindowMatchesTab(exactMatchedTab);
-          return;
-        }
-      }
-
-      const activeIndex = activeTab
-        ? currentTabs.findIndex((tab) => tab.tabId === activeTab.tabId)
-        : -1;
+      const index = currentTabs.findIndex((tab) => tab.uid === newTab.uid);
       let updatedTabs: Tab[];
       let updatedCurrentTab: Tab | undefined;
 
-      if (shouldOpenInNewTab) {
-        updatedTabs = [...currentTabs, newTab];
+      if (ctrlKeyPressed || isAutoOpenNewTab()) {
+        if (index === -1) {
+          updatedTabs = [...currentTabs, newTab];
+        } else {
+          updatedTabs = currentTabs.map((t) =>
+            t.uid === newTab.uid ? newTab : t
+          );
+        }
         updatedCurrentTab = newTab;
       } else {
         if (currentTabs.length === 0) {
           updatedTabs = [newTab];
           updatedCurrentTab = newTab;
-        } else if (activeIndex !== -1 && currentTabs[activeIndex].uid === newTab.uid) {
-          const refreshedActiveTab = createOrReuseTab(
-            targetSnapshot,
-            currentTabs[activeIndex]
-          );
+        } else if (index !== -1) {
           updatedTabs = currentTabs.map((t) =>
-            t.tabId === refreshedActiveTab.tabId ? refreshedActiveTab : t
+            t.uid === newTab.uid ? newTab : t
           );
-          updatedCurrentTab = refreshedActiveTab;
-        } else if (!activeTab) {
+          updatedCurrentTab = newTab;
+        } else if (!currentTab) {
           updatedTabs = [...currentTabs, newTab];
           updatedCurrentTab = newTab;
         } else {
-          if (activeIndex !== -1) {
-            const replacedTab = replaceTabPage(currentTabs[activeIndex], targetSnapshot);
-            updatedTabs = currentTabs.map((t, idx) =>
-              idx === activeIndex ? replacedTab : t
-            );
-            updatedCurrentTab = replacedTab;
+          const i = currentTabs.findIndex((tab) => currentTab.uid === tab.uid);
+          if (i !== -1) {
+            updatedTabs = currentTabs.map((t, idx) => (idx === i ? newTab : t));
+            updatedCurrentTab = newTab;
           } else {
             updatedTabs = currentTabs;
-            updatedCurrentTab = activeTab;
+            updatedCurrentTab = currentTab;
           }
         }
       }
 
       saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
+      ctrlKeyPressed = oldCtrlKeyPressed;
     } else {
       saveAndRefreshTabs(tabs, undefined);
     }
@@ -212,30 +175,15 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
       // rbm.removeEventListener("scroll", onScroll);
     };
   }, [tabs, currentTab]);
-  useOnUidWillChange((uid, routeMeta) => {
+  useOnUidWillChange((uid) => {
     console.log("useOnUidWillChange: ", uid);
     if (!uid) {
       saveAndRefreshTabs(tabs, undefined);
       return;
     }
-    if (routeMeta?.fromTabSwitch) {
-      return;
-    }
     const pageUid = getPageUidByUid(uid);
-    if (routeMeta?.ensureMainWindow && currentTab) {
-      const restoredTab = restoreTabFromHistory(currentTab, pageUid);
-      if (restoredTab) {
-        const currentTabs = loadTabsFromSettings()?.tabs || tabs;
-        const updatedTabs = currentTabs.map((tab) =>
-          tab.tabId === currentTab.tabId ? restoredTab : tab
-        );
-        saveAndRefreshTabs(updatedTabs, restoredTab);
-        void ensureMainWindowMatchesTab(restoredTab);
-        return;
-      }
-    }
     const title = getPageTitleByUid(pageUid);
-    onChange(pageUid, title, uid, routeMeta);
+    onChange(pageUid, title, uid);
   });
 
   useEffect(() => {
@@ -259,10 +207,10 @@ function App(props: { tabs: Tab[]; currentTab?: Tab }) {
     <>
       <div className="roam-tabs-container">
         {tabs.map((tab, index) => {
-          const active = tab.tabId === currentTab?.tabId;
+          const active = tab.uid === currentTab?.uid;
           return (
             <AppTab
-              key={tab.tabId}
+              key={tab.uid}
               active={active}
               index={index}
               tab={tab}
@@ -330,13 +278,13 @@ class AppTab extends Component<{
                 text="Close"
                 tagName="span"
                 onClick={() => {
-                  removeTabFromConfig(tab.tabId);
+                  removeTabFromConfig(tab.uid);
                 }}
               />
               <MenuItem
                 text="Close Others"
                 onClick={() => {
-                  removeOtherTabsFromConfig(tab.tabId);
+                  removeOtherTabsFromConfig(tab.uid);
                 }}
                 disabled={tabs.length === 1}
               />
@@ -364,7 +312,7 @@ class AppTab extends Component<{
               <MenuDivider />
               <MenuItem
                 onClick={() => {
-                  toggleTabPinFromConfig(tab.tabId);
+                  toggleTabPinFromConfig(tab.uid);
                 }}
                 text={tab.pin ? "Unpin" : "Pin"}
               />
@@ -379,7 +327,7 @@ class AppTab extends Component<{
             return;
           }
           console.log("onClick: ", tab);
-          focusTabFromConfig(tab.tabId);
+          openUid(tab.blockUid);
         }}
         rightIcon={
           tab.pin ? (
@@ -391,7 +339,7 @@ class AppTab extends Component<{
               onClickCapture={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleTabPinFromConfig(tab.tabId);
+                toggleTabPinFromConfig(tab.uid);
               }}
             />
           ) : (
@@ -402,7 +350,7 @@ class AppTab extends Component<{
               onClickCapture={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                removeTabFromConfig(tab.tabId);
+                removeTabFromConfig(tab.uid);
               }}
             />
           )
@@ -427,6 +375,15 @@ class AppTab extends Component<{
   }
 }
 // Moved to src/hooks/useEvent.ts
+
+const openUid = (uid: string) => {
+  console.log("openUid: ", uid);
+  window.roamAlphaAPI.ui.mainWindow.openBlock({
+    block: {
+      uid: uid,
+    },
+  });
+};
 
 let ctrlKeyPressed = false;
 
@@ -492,10 +449,10 @@ function openInSidebar(uid: string) {
 function recordPosition(tabs: Tab[], currentTab?: Tab) {
   if (currentTab && currentTab.scrollTop !== scrollTop$) {
     const updatedCurrentTab = { ...currentTab, scrollTop: scrollTop$ };
-    const tab = tabs.find((tab) => tab.tabId === currentTab.tabId);
+    const tab = tabs.find((tab) => tab.uid === currentTab.uid);
     if (tab) {
       const updatedTabs = tabs.map((t) =>
-        t.tabId === currentTab.tabId ? { ...t, scrollTop: scrollTop$ } : t
+        t.uid === currentTab.uid ? { ...t, scrollTop: scrollTop$ } : t
       );
       saveAndRefreshTabs(updatedTabs, updatedCurrentTab);
     }
@@ -504,8 +461,8 @@ function recordPosition(tabs: Tab[], currentTab?: Tab) {
 
 const swapTab = debounce(
   (tab: Tab, draggingTab: Tab, tabs: Tab[], currentTab?: Tab) => {
-    const index1 = tabs.findIndex((t) => t.tabId === tab.tabId);
-    const index2 = tabs.findIndex((t) => t.tabId === draggingTab.tabId);
+    const index1 = tabs.findIndex((t) => t.uid === tab.uid);
+    const index2 = tabs.findIndex((t) => t.uid === draggingTab.uid);
     const newTabs = [...tabs];
     newTabs.splice(index2, 1);
     const swappedTabs = [

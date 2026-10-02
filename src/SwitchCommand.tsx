@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MenuItem, Menu, Icon } from "@blueprintjs/core";
 import { Omnibar } from "@blueprintjs/select";
 import ReactDOM from "react-dom/client";
 import { List, arrayMove } from "react-movable";
 import type { Tab } from "./type";
-import { focusTab, saveAndRefreshTabs } from "./config";
+import { focusTab, saveAndRefreshTabs, saveTabsToSettings } from "./config";
 
 export const globalSwitchCommandOperator = {
   listeners: [] as ((v: boolean) => void)[],
@@ -86,7 +86,7 @@ export function renderSwitchCommand(tabs: Tab[], currentTab?: Tab) {
         saveAndRefreshTabs(newTabs, currentTab);
       }}
       onTabSelect={(tab) => {
-        focusTab(tab.tabId);
+        focusTab(tab.uid);
       }}
     />
   );
@@ -167,7 +167,7 @@ function SwitchCommand({ tabs, currentTab, onTabSelect, onTabSorted }: SwitchCom
         const currentFilteredItems =
           filteredItems.length > 0 &&
           filteredItems.every((item) =>
-            itemListProps.filteredItems.some((f) => f.tabId === item.tabId)
+            itemListProps.filteredItems.some((f) => f.uid === item.uid)
           )
             ? filteredItems
             : itemListProps.filteredItems;
@@ -257,16 +257,13 @@ function SwitchCommand({ tabs, currentTab, onTabSelect, onTabSorted }: SwitchCom
                   className={
                     "bp3-menu-item" +
                     `${
-                      currentTab?.tabId === value.tabId
+                      currentTab.uid === value.uid
                         ? " bp3-active"
                         : ""
                     }`
                   }
                   style={{
-                    background:
-                      (itemListProps.activeItem as Tab)?.tabId === value.tabId
-                        ? "#efefef"
-                        : "transparent",
+                    background: (itemListProps.activeItem as Tab)?.uid === value.uid ? "#efefef" : "transparent",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",

@@ -75,7 +75,7 @@ export const StackPageMenu = ({
       <MenuItem
         icon="add-column-right"
         onClick={() => {
-          openInSidebar(item.blockUid || item.pageUid);
+          openInSidebar(item.id);
         }}
         text="Open in Sidebar"
       />
